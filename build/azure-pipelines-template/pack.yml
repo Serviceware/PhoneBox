@@ -1,0 +1,18 @@
+﻿parameters:
+- name: configuration
+  type: string
+  values:
+  - Debug
+  - Release
+
+steps:
+- template: pack-dotnet.yml
+  parameters:
+    projects:
+    - PhoneBox.Server
+    configuration: ${{ parameters.configuration }}
+
+- template: publish.yml
+  parameters:
+    artifact: NuGet packages
+    folder: packages

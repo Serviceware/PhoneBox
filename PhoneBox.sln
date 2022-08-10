@@ -1,0 +1,75 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32112.339
+MinimumVisualStudioVersion = 15.0.26124.0
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{118B0BCE-C81F-4DA0-814C-2F8AC4867710}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B1D5F4EA-842C-494E-9B2F-1FF271591E29}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{62C58971-8516-42E1-8D2A-70A0CE779FFE}"
+	ProjectSection(SolutionItems) = preProject
+		build\build.yml = build\build.yml
+		build\dependencies.props = build\dependencies.props
+		Directory.Build.props = Directory.Build.props
+		Directory.Build.targets = Directory.Build.targets
+		global.json = global.json
+		NuGet.config = NuGet.config
+		Packages.props = Packages.props
+		README.md = README.md
+		build\release.yml = build\release.yml
+		version.json = version.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "azure-pipeline-templates", "azure-pipeline-templates", "{D471D863-FB0C-44E3-904F-A3B8CC0B0256}"
+	ProjectSection(SolutionItems) = preProject
+		build\azure-pipelines-template\build-all.yml = build\azure-pipelines-template\build-all.yml
+		build\azure-pipelines-template\build-dotnet.yml = build\azure-pipelines-template\build-dotnet.yml
+		build\azure-pipelines-template\build.yml = build\azure-pipelines-template\build.yml
+		build\azure-pipelines-template\initialize.yml = build\azure-pipelines-template\initialize.yml
+		build\azure-pipelines-template\install-dotnet-sdk.yml = build\azure-pipelines-template\install-dotnet-sdk.yml
+		build\azure-pipelines-template\pack-dotnet.yml = build\azure-pipelines-template\pack-dotnet.yml
+		build\azure-pipelines-template\pack.yml = build\azure-pipelines-template\pack.yml
+		build\azure-pipelines-template\publish-coverage.yml = build\azure-pipelines-template\publish-coverage.yml
+		build\azure-pipelines-template\publish.yml = build\azure-pipelines-template\publish.yml
+		build\azure-pipelines-template\restore.yml = build\azure-pipelines-template\restore.yml
+		build\azure-pipelines-template\run.yml = build\azure-pipelines-template\run.yml
+		build\azure-pipelines-template\test-dotnet-cobertura.yml = build\azure-pipelines-template\test-dotnet-cobertura.yml
+		build\azure-pipelines-template\test-dotnet-native.yml = build\azure-pipelines-template\test-dotnet-native.yml
+		build\azure-pipelines-template\test-dotnet.yml = build\azure-pipelines-template\test-dotnet.yml
+		build\azure-pipelines-template\test-initialize-localdb.yml = build\azure-pipelines-template\test-initialize-localdb.yml
+		build\azure-pipelines-template\test.yml = build\azure-pipelines-template\test.yml
+		build\azure-pipelines-template\variables.yml = build\azure-pipelines-template\variables.yml
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Server", "src\PhoneBox.Server\PhoneBox.Server.csproj", "{5AD40A13-FDF9-4A8E-823C-4AED252BAB4F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Server.Test", "tests\PhoneBox.Server.Test\PhoneBox.Server.Test.csproj", "{63FC2FE6-35A1-4759-8C43-DAB86346B4BE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5AD40A13-FDF9-4A8E-823C-4AED252BAB4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5AD40A13-FDF9-4A8E-823C-4AED252BAB4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5AD40A13-FDF9-4A8E-823C-4AED252BAB4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5AD40A13-FDF9-4A8E-823C-4AED252BAB4F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63FC2FE6-35A1-4759-8C43-DAB86346B4BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63FC2FE6-35A1-4759-8C43-DAB86346B4BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63FC2FE6-35A1-4759-8C43-DAB86346B4BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63FC2FE6-35A1-4759-8C43-DAB86346B4BE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D471D863-FB0C-44E3-904F-A3B8CC0B0256} = {62C58971-8516-42E1-8D2A-70A0CE779FFE}
+		{5AD40A13-FDF9-4A8E-823C-4AED252BAB4F} = {118B0BCE-C81F-4DA0-814C-2F8AC4867710}
+		{63FC2FE6-35A1-4759-8C43-DAB86346B4BE} = {B1D5F4EA-842C-494E-9B2F-1FF271591E29}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F25BA702-70BE-4E04-8583-C71369C6D3D0}
+	EndGlobalSection
+EndGlobal

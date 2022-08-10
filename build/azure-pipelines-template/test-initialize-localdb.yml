@@ -1,0 +1,12 @@
+﻿steps:
+- script: sqllocaldb start mssqllocaldb
+  displayName: 🔌 Start MSSQLLocalDB instance for PhoneBox.Server.Tests
+
+- script: sqlcmd -S (localdb)\MSSQLLocalDB -Q "CREATE DATABASE [PhoneBox]"
+  displayName: 🗄 Create database for PhoneBox.Server.Tests
+
+- script: sqlcmd -S (localdb)\MSSQLLocalDB -i tests/PhoneBox.Server.Tests/Environment/Initialize.sql -d PhoneBox
+  displayName: 🔧 Initialize database for PhoneBox.Server.Tests
+
+#- script: echo "##vso[task.setvariable variable=Database:ConnectionString]Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=PhoneBox;Integrated Security=True;
+#  displayName: 🤙 Set connection string to environment variable

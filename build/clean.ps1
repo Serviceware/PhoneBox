@@ -1,0 +1,1 @@
+Get-ChildItem (Resolve-Path "$PSScriptRoot/..") -Directory -Recurse -Force -Include ".vs", "bin", "obj", "TestResults" | % { Write-Output $_.FullName; Remove-Item -Recurse -Force -ErrorAction Ignore $_.FullName }

@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "PhoneBox.Server": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "hi",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:63440;http://localhost:63441"
+    }
+  }
+}

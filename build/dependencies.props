@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+
+    <!-- Runtime -->
+
+    <!-- Testing -->
+    <CoverletVersion>3.1.2</CoverletVersion>
+    <MicrosoftTestSdkVersion>17.1.0</MicrosoftTestSdkVersion>
+    <MSTestAdapterVersion>2.2.8</MSTestAdapterVersion>
+    <MSTestFrameworkVersion>2.2.8</MSTestFrameworkVersion>
+
+  </PropertyGroup>
+</Project>

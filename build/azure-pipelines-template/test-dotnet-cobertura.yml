@@ -1,0 +1,42 @@
+﻿parameters:
+- name: projects
+  type: object
+  default: { }
+- name: configuration
+  type: string
+  values:
+  - Debug
+  - Release
+- name: arguments
+  type: string
+  default:
+ 
+steps:
+- ${{ each project in parameters.projects }}:
+  - task: DotNetCoreCLI@2
+    displayName: 🧪 Test ${{ project }}
+    condition: succeededOrFailed()
+    inputs:
+      command: test
+      projects: tests/${{ project }}
+      testRunTitle: ${{ project }} ($(operatingSystem))
+      arguments: >
+        --logger trx;LogFileName=${{ project }}.trx
+        --configuration ${{ parameters.configuration }}
+        --no-restore
+        --collect:"XPlat Code Coverage"
+        ${{ parameters.arguments }}
+        -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.DeterministicReport=True
+  
+  - pwsh: Get-ChildItem $(Agent.TempDirectory)/*/coverage.cobertura.xml | %{ Rename-Item -Path $_.FullName -NewName ${{ project }}.xml }
+    displayName: 🎨 Rename coverage.cobertura.xml -> ${{ project }}.xml
+    condition: succeededOrFailed()
+
+  - task: CopyFiles@2
+    displayName: 🪂 Prepare test artifacts
+    condition: succeededOrFailed()
+    inputs:
+      SourceFolder: $(Agent.TempDirectory)
+      TargetFolder: $(Build.ArtifactStagingDirectory)/test
+      flattenFolders: true
+      Contents: '*/${{ project }}.xml'
