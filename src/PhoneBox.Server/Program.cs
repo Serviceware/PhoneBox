@@ -17,6 +17,7 @@ namespace PhoneBox.Server
             WebApplication app = builder.Build();
 
             app.MapHub<TelephonyHub>("/TelephonyHub");
+            app.MapGet("/TelephonyHook", TelephonyHook.Handle);
             
             await app.RunAsync().ConfigureAwait(false);
         }

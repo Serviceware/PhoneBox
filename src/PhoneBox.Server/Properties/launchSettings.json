@@ -3,6 +3,8 @@
     "PhoneBox.Server": {
       "commandName": "Project",
       "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "TelephonyHook",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
