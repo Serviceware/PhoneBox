@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace PhoneBox.Server
 {
@@ -7,10 +8,15 @@ namespace PhoneBox.Server
     {
         private static async Task Main(string[] args)
         {
-            WebApplication app = WebApplication.CreateBuilder(args)
-                                               .Build();
+            WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-            app.MapGet("/hi", () => "Hello!");
+            IServiceCollection services = builder.Services;
+            services.AddSignalR();
+            services.AddHostedService<TelephonyHubPublisher>();
+
+            WebApplication app = builder.Build();
+
+            app.MapHub<TelephonyHub>("/TelephonyHub");
             
             await app.RunAsync().ConfigureAwait(false);
         }

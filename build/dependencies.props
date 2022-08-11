@@ -2,6 +2,8 @@
   <PropertyGroup>
 
     <!-- Runtime -->
+    <MicrosoftAspNetCoreSignalRClientVersion>6.0.8</MicrosoftAspNetCoreSignalRClientVersion>
+    <MicrosoftExtensionsHostingVersion>6.0.1</MicrosoftExtensionsHostingVersion>
 
     <!-- Testing -->
     <CoverletVersion>3.1.2</CoverletVersion>

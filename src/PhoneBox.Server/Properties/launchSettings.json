@@ -2,8 +2,7 @@
   "profiles": {
     "PhoneBox.Server": {
       "commandName": "Project",
-      "launchBrowser": true,
-      "launchUrl": "hi",
+      "dotnetRunMessages": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
