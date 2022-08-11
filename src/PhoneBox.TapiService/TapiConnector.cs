@@ -15,7 +15,7 @@ namespace PhoneBox.TapiService
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _tapiClient = new TAPI3Lib.TAPIClass();
+            _tapiClient = new TAPI3Lib.TAPI();
             _tapiClient.Initialize();
             return Task.CompletedTask;
         }

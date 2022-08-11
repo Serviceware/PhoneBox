@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -7,7 +7,17 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" />
-		<Reference Include="TAPI3Lib" />
+		<COMReference Include="TAPI3Lib">
+			<Guid>{21D6D480-A88B-11D0-83DD-00AA003CCABD}</Guid>
+			<MajorVersion>1</MajorVersion>
+			<MinorVersion>0</MinorVersion>
+			<EmbedInteropTypes>True</EmbedInteropTypes>
+			<Private>False</Private>
+			<Isolated>False</Isolated>
+			<Lcid>0</Lcid>
+			<VersionMajor>1</VersionMajor>
+			<VersionMinor>0</VersionMinor>
+		</COMReference>
 	</ItemGroup>
 
 </Project>
