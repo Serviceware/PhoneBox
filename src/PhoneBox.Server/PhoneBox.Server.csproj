@@ -9,4 +9,8 @@
     <Compile Include="..\..\shared\ITelephonyHub.cs" Link="ITelephonyHub.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PhoneBox.TapiService\PhoneBox.TapiService.csproj" />
+  </ItemGroup>
+
 </Project>

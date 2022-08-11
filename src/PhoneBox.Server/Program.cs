@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using PhoneBox.TapiService;
 
 namespace PhoneBox.Server
 {
@@ -13,6 +14,7 @@ namespace PhoneBox.Server
             IServiceCollection services = builder.Services;
             services.AddSignalR();
             services.AddHostedService<TelephonyHubPublisher>();
+            services.AddHostedService<TapiServiceListener>();
             services.AddSingleton<ITelephonyHook, TelephonyHook>();
 
             WebApplication app = builder.Build();
