@@ -18,7 +18,8 @@ namespace PhoneBox.Server
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                await this._hub.Clients.All.SendMessage("Hey there").ConfigureAwait(false);
+                string phoneNumber = "101";
+                await this._hub.Clients.User(phoneNumber).SendMessage("Hey there:" + phoneNumber).ConfigureAwait(false);
                 await Task.Delay(1000, stoppingToken).ConfigureAwait(false);
             }
         }
