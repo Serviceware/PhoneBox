@@ -9,8 +9,6 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
 		<COMReference Include="TAPI3Lib">
 			<Guid>{21D6D480-A88B-11D0-83DD-00AA003CCABD}</Guid>
-			<MajorVersion>1</MajorVersion>
-			<MinorVersion>0</MinorVersion>
 			<EmbedInteropTypes>True</EmbedInteropTypes>
 			<Private>False</Private>
 			<Isolated>False</Isolated>
