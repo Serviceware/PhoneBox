@@ -1,14 +1,23 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 
-namespace PhoneBox.Server;
-
-internal static class TelephonyHook
+namespace PhoneBox.Server
 {
-    public static Task Handle(HttpContext context)
+    internal sealed class TelephonyHook : ITelephonyHook
     {
-        context.Response.StatusCode = 200;
-        context.Response.WriteAsync("Thx!");
-        return Task.CompletedTask;
+        private readonly IHubContext<TelephonyHub, ITelephonyHub> _hub;
+
+        public TelephonyHook(IHubContext<TelephonyHub, ITelephonyHub> hub)
+        {
+            this._hub = hub;
+        }
+
+        public async Task Handle(HttpContext context)
+        {
+            await this._hub.Clients.All.SendMessage("Webhook called!").ConfigureAwait(false);
+            context.Response.StatusCode = 200;
+            await context.Response.WriteAsync("Thx!").ConfigureAwait(false);
+        }
     }
 }

@@ -13,11 +13,12 @@ namespace PhoneBox.Server
             IServiceCollection services = builder.Services;
             services.AddSignalR();
             services.AddHostedService<TelephonyHubPublisher>();
+            services.AddSingleton<ITelephonyHook, TelephonyHook>();
 
             WebApplication app = builder.Build();
 
             app.MapHub<TelephonyHub>("/TelephonyHub");
-            app.MapGet("/TelephonyHook", TelephonyHook.Handle);
+            app.MapGet("/TelephonyHook", x => x.RequestServices.GetRequiredService<ITelephonyHook>().Handle(x));
             
             await app.RunAsync().ConfigureAwait(false);
         }
