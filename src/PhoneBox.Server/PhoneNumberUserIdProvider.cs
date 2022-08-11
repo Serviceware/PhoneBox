@@ -8,6 +8,7 @@ namespace PhoneBox.Server
     {
         public PhoneNumberUserIdProvider()
         {
+
         }
         public string? GetUserId(HubConnectionContext connection)
         {
