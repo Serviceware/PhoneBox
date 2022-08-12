@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);IL2026</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -22,3 +22,6 @@
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
+
+# Publish user settings
+*.pubxml.user
