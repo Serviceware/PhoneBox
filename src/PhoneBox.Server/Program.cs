@@ -26,7 +26,12 @@ namespace PhoneBox.Server
             WebApplication app = builder.Build();
 
             app.MapHub<TelephonyHub>("/TelephonyHub");
-            app.MapMethods("/TelephonyHook/{phoneNumber}", EnumerableExtensions.Create((isDevelopment ? HttpMethod.Get : HttpMethod.Post).Method), (string phoneNumber, ITelephonyHook hook, HttpContext context) => hook.Handle(phoneNumber, context));
+            app.MapMethods
+            (
+                pattern: "/TelephonyHook/{phoneNumber}"
+              , httpMethods: EnumerableExtensions.Create((isDevelopment ? HttpMethod.Get : HttpMethod.Post).Method)
+              , handler: (string phoneNumber, ITelephonyHook hook, HttpContext context) => hook.Handle(phoneNumber, context)
+            );
             
             await app.RunAsync().ConfigureAwait(false);
         }
