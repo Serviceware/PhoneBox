@@ -18,4 +18,8 @@
 		</COMReference>
 	</ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PhoneBox.Abstractions\PhoneBox.Abstractions.csproj" />
+  </ItemGroup>
+
 </Project>

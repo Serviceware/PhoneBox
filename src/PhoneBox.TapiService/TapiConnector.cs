@@ -1,8 +1,7 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
-using PhoneBox.Contracts;
+using PhoneBox.Abstractions;
 
 namespace PhoneBox.TapiService
 {
@@ -11,6 +10,11 @@ namespace PhoneBox.TapiService
         private TAPI3Lib.TAPI? _tapiClient;
         public TapiConnector()
         {
+        }
+
+        public void Register(string phoneNumber)
+        {
+
         }
 
         public Task StartAsync(CancellationToken cancellationToken)

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -6,10 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\shared\ITelephonyHub.cs" Link="ITelephonyHub.cs" />
+    <Compile Include="..\..\shared\Extensions\EnumerableExtensions.cs" Link="Extensions\EnumerableExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\PhoneBox.Abstractions\PhoneBox.Abstractions.csproj" />
     <ProjectReference Include="..\PhoneBox.TapiService\PhoneBox.TapiService.csproj" />
   </ItemGroup>
 

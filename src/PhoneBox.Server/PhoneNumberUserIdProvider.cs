@@ -10,6 +10,7 @@ namespace PhoneBox.Server
         {
 
         }
+
         public string? GetUserId(HubConnectionContext connection)
         {
             Claim? phoneNumberClaim = connection.User?.Claims.FirstOrDefault(x => x.Type == ClaimTypes.HomePhone);

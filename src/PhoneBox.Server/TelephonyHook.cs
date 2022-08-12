@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
+using PhoneBox.Abstractions;
 
 namespace PhoneBox.Server
 {

@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace PhoneBox
+namespace PhoneBox.Abstractions
 {
     public interface ITelephonyHub
     {

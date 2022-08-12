@@ -1,9 +1,10 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
-namespace PhoneBox.Server;
-
-internal interface ITelephonyHook
+namespace PhoneBox.Server
 {
-    Task Handle(HttpContext context);
+    internal interface ITelephonyHook
+    {
+        Task Handle(HttpContext context);
+    }
 }
