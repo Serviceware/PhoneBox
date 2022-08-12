@@ -1,6 +1,7 @@
 ﻿using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -25,7 +26,7 @@ namespace PhoneBox.Server
             WebApplication app = builder.Build();
 
             app.MapHub<TelephonyHub>("/TelephonyHub");
-            app.MapMethods("/TelephonyHook", EnumerableExtensions.Create((isDevelopment ? HttpMethod.Get : HttpMethod.Post).Method), x => x.RequestServices.GetRequiredService<ITelephonyHook>().Handle(x));
+            app.MapMethods("/TelephonyHook/{phoneNumber}", EnumerableExtensions.Create((isDevelopment ? HttpMethod.Get : HttpMethod.Post).Method), (string phoneNumber, ITelephonyHook hook, HttpContext context) => hook.Handle(phoneNumber, context));
             
             await app.RunAsync().ConfigureAwait(false);
         }

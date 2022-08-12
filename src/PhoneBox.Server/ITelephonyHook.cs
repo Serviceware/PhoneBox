@@ -5,6 +5,6 @@ namespace PhoneBox.Server
 {
     internal interface ITelephonyHook
     {
-        Task Handle(HttpContext context);
+        Task Handle(string phoneNumber, HttpContext context);
     }
 }
