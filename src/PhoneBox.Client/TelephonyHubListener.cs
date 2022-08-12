@@ -19,6 +19,8 @@ namespace PhoneBox.Client
                                                                  .Build();
             connection.Closed += OnHubConnectionClosed;
             connection.On<string>(this.SendMessage);
+            connection.On<CallNotificationEvent>(this.ReceiveCallNotification);
+            connection.On<CallStateEvent>(this.ReceiveCallState);
 
             await connection.StartAsync(cancellationToken).ConfigureAwait(false);
 
@@ -60,13 +62,13 @@ namespace PhoneBox.Client
             return Task.CompletedTask;
         }
 
-        Task ITelephonyHub.ReceiveCallNotification(CallNotificationEvent call)
+        public Task ReceiveCallNotification(CallNotificationEvent call)
         {
-            Console.WriteLine($"Received call notification: {call.DebugInfo}");
+            Console.WriteLine($"Received call notification: {call.CallerPhoneNumber} {call.CallStateKey} {call.HasCallControl} ==> {call.DebugInfo}");
             return Task.CompletedTask;
         }
 
-        Task ITelephonyHub.ReceiveCallState(CallStateEvent call)
+        public Task ReceiveCallState(CallStateEvent call)
         {
             Console.WriteLine($"Received call state: {call.DebugInfo}");
             return Task.CompletedTask;

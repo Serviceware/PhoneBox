@@ -1,17 +1,25 @@
-﻿namespace PhoneBox.Abstractions
-{
-    public readonly struct CallNotificationEvent
-    {
-        public string PhoneNumber { get; }
-        public string DebugInfo { get; }
+﻿using System.Diagnostics;
 
-        public CallNotificationEvent(string phoneNumber, string debugInfo)
+namespace PhoneBox.Abstractions
+{
+    [DebuggerDisplay("{DebugInfo}")]
+    public sealed class CallNotificationEvent
+    {
+        public string DebugInfo { get; }
+        public string CallerPhoneNumber { get; }
+        public string CallStateKey { get; }
+        public bool HasCallControl { get; }
+
+        public CallNotificationEvent(string debugInfo, string callerPhoneNumber, string callStateKey, bool hasCallControl)
         {
-            this.PhoneNumber = phoneNumber;
-            this.DebugInfo = debugInfo;
+            DebugInfo = debugInfo;
+            CallerPhoneNumber = callerPhoneNumber;
+            CallStateKey = callStateKey;
+            HasCallControl = hasCallControl;
         }
     }
-    public readonly struct CallStateEvent
+    [DebuggerDisplay("{DebugInfo}")]
+    public sealed class CallStateEvent
     {
         public string PhoneNumber { get; }
         public string DebugInfo { get; }

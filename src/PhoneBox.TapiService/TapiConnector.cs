@@ -102,16 +102,18 @@ namespace PhoneBox.TapiService
                 if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription registration))
                     return;
 
-                string phoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
                 string debugInfo = CallInfoAsText(tapiEvent, call);
-                await registration.Publisher.OnCallNotification(new CallNotificationEvent(phoneNumber, debugInfo));
+                string callerPhoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
+                string callStateKey = call.CallState.ToString();
+                bool hasCallControl = call.Privilege == CALL_PRIVILEGE.CP_OWNER;
+                await registration.Publisher.OnCallNotification(new CallNotificationEvent(debugInfo, callerPhoneNumber, callStateKey, hasCallControl));
             }
 
             private static string CallInfoAsText(TAPI_EVENT tapiEvent, ITCallInfo callInfo, string txt = "")
             {
                 int callId = callInfo.CallInfoLong[CALLINFO_LONG.CIL_CALLID];
                 string callerNumber = callInfo.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
-                //string callerName = callInfo.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNAME];
+                //exception!!! string callerName = callInfo.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNAME];
                 return $"{tapiEvent} #{callId} S:{callInfo.CallState}, P:[{callInfo.Privilege}], Cu:[{callerNumber}] {txt}.";
             }
         }
