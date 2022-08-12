@@ -35,13 +35,12 @@ namespace PhoneBox.Server
             WebApplication app = builder.Build();
 
             app.MapHub<TelephonyHub>("/TelephonyHub");
-            app.MapMethods
-            (
-                pattern: "/TelephonyHook/{phoneNumber}"
-              , httpMethods: EnumerableExtensions.Create((isDevelopment ? HttpMethod.Get : HttpMethod.Post).Method)
-              , handler: (string phoneNumber, ITelephonyHook hook, HttpContext context) => hook.Handle(phoneNumber, context)
-            );
-            
+
+            if (isDevelopment)
+                app.MapGet("/TelephonyHook/{phoneNumber}", (string phoneNumber, ITelephonyHook hook, HttpContext context) => hook.HandleGet(phoneNumber, context));
+            else
+                app.MapPost("/TelephonyHook", (WebHookRequest request, ITelephonyHook hook, HttpContext context) => hook.HandlePost(request, context));
+
             await app.RunAsync().ConfigureAwait(false);
         }
     }

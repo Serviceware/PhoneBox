@@ -5,6 +5,7 @@ namespace PhoneBox.Server.WebHook
 {
     internal interface ITelephonyHook
     {
-        Task Handle(string phoneNumber, HttpContext context);
+        Task HandleGet(string phoneNumber, HttpContext context);
+        Task HandlePost(WebHookRequest request, HttpContext context);
     }
 }
