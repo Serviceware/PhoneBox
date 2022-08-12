@@ -51,21 +51,24 @@ namespace PhoneBox.TapiService
                 this._registrations = registrations;
             }
 
-            public async void Event(TAPI_EVENT TapiEvent, object pEvent)
+            public async void Event(TAPI_EVENT tapiEvent, object pEvent)
             {
-                if (TapiEvent != TAPI_EVENT.TE_CALLNOTIFICATION)
+                if (tapiEvent != TAPI_EVENT.TE_CALLNOTIFICATION)
                     return;
 
                 ITCallNotificationEvent notificationEvent = (ITCallNotificationEvent)pEvent;
-                CallSubscriber subscriber = new CallSubscriber(notificationEvent.Call.Address.AddressName);
+                ITCallInfo call = notificationEvent.Call;
+                CallSubscriber subscriber = new CallSubscriber(call.Address.AddressName);
                 if (!this._registrations.TryGetValue(subscriber, out Func<CallInfo, Task> onCall)) 
                     return;
 
-                string phoneNumber = CallInfoAsText(TapiEvent, notificationEvent.Call);
-                CallInfo callInfo = new CallInfo(phoneNumber);
+                string phoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
+                string debugInfo = CallInfoAsText(tapiEvent, call);
+                CallInfo callInfo = new CallInfo(phoneNumber, debugInfo);
                 await onCall(callInfo);
 
             }
+
             private static string CallInfoAsText(TAPI_EVENT tapiEvent, ITCallInfo callInfo, string txt = "")
             {
                 int callId = callInfo.CallInfoLong[CALLINFO_LONG.CIL_CALLID];
