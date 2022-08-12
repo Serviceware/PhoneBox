@@ -15,13 +15,13 @@ namespace PhoneBox.Server.WebHook
             this._hub = hub;
         }
 
-        public Task HandleGet(string phoneNumber, HttpContext context) => this.HandleWebHookRequest(phoneNumber, context);
+        public Task HandleGet(string fromPhoneNumber, string toPhoneNumber, HttpContext context) => this.HandleWebHookRequest(fromPhoneNumber, toPhoneNumber, context);
 
-        public Task HandlePost(WebHookRequest request, HttpContext context) => this.HandleWebHookRequest(request.PhoneNumber!, context);
+        public Task HandlePost(WebHookRequest request, HttpContext context) => this.HandleWebHookRequest(request.FromPhoneNumber, request.ToPhoneNumber, context);
 
-        private async Task HandleWebHookRequest(string phoneNumber, HttpContext context)
+        private async Task HandleWebHookRequest(string fromPhoneNumber, string toPhoneNumber, HttpContext context)
         {
-            await this._hub.Clients.User(phoneNumber).SendMessage($"Webhook called: {phoneNumber}").ConfigureAwait(false);
+            await this._hub.Clients.User(toPhoneNumber).SendMessage($"Webhook called: {fromPhoneNumber}").ConfigureAwait(false);
             context.Response.StatusCode = 200;
             await context.Response.WriteAsync("Thx!").ConfigureAwait(false);
         }

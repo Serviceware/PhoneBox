@@ -2,11 +2,13 @@
 {
     internal sealed class WebHookRequest
     {
-        public string? PhoneNumber { get; }
+        public string FromPhoneNumber { get; }
+        public string ToPhoneNumber { get; }
 
-        public WebHookRequest(string? phoneNumber)
+        public WebHookRequest(string fromPhoneNumber, string toPhoneNumber)
         {
-            this.PhoneNumber = phoneNumber;
+            this.FromPhoneNumber = fromPhoneNumber;
+            this.ToPhoneNumber = toPhoneNumber;
         }
     }
 }

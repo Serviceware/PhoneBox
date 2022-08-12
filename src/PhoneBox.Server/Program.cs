@@ -37,7 +37,7 @@ namespace PhoneBox.Server
             app.MapHub<TelephonyHub>("/TelephonyHub");
 
             if (isDevelopment)
-                app.MapGet("/TelephonyHook/{phoneNumber}", (string phoneNumber, ITelephonyHook hook, HttpContext context) => hook.HandleGet(phoneNumber, context));
+                app.MapGet("/TelephonyHook/{fromPhoneNumber}/{toPhoneNumber}", (string fromPhoneNumber, string toPhoneNumber, ITelephonyHook hook, HttpContext context) => hook.HandleGet(fromPhoneNumber, toPhoneNumber, context));
             else
                 app.MapPost("/TelephonyHook", (WebHookRequest request, ITelephonyHook hook, HttpContext context) => hook.HandlePost(request, context));
 
