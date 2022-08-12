@@ -63,7 +63,7 @@ namespace PhoneBox.TapiService
                 if (this._registrations.TryGetValue(subscriber, out Func<string, Task> handler))
                 {
                     string phoneNumber = CallInfoAsText(TapiEvent, notificationEvent.Call);
-                    await handler(phoneNumber)
+                    await handler(phoneNumber);
                 }
 
             }
