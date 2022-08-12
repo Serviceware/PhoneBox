@@ -23,7 +23,12 @@ namespace PhoneBox.Server
             services.AddSingleton<ITelephonyHook, TelephonyHook>();
             services.AddSingleton<ITelephonyHubPublisher, TelephonyHubPublisher>();
             services.AddSingleton<IUserIdProvider, PhoneNumberUserIdProvider>();
-            services.AddSingleton<IHostedService, TelephonyHubWorker>();
+
+            if (isDevelopment)
+            {
+                // Periodically sends messages to the hub for debugging purposes
+                services.AddSingleton<IHostedService, TelephonyHubWorker>();
+            }
 
             TelephonyConnectorRegistrar.RegisterProvider(builder, services);
 
