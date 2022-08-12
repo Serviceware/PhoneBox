@@ -7,19 +7,14 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" />
-		<COMReference Include="TAPI3Lib">
-			<Guid>{21D6D480-A88B-11D0-83DD-00AA003CCABD}</Guid>
-			<EmbedInteropTypes>True</EmbedInteropTypes>
-			<Private>False</Private>
-			<Isolated>False</Isolated>
-			<Lcid>0</Lcid>
-			<VersionMajor>1</VersionMajor>
-			<VersionMinor>0</VersionMinor>
-		</COMReference>
 	</ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\PhoneBox.Abstractions\PhoneBox.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Interop.TAPI3Lib" HintPath="..\..\lib\Interop.TAPI3Lib.dll" />
   </ItemGroup>
 
 </Project>
