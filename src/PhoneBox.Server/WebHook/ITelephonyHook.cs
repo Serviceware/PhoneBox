@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
-namespace PhoneBox.Server
+namespace PhoneBox.Server.WebHook
 {
     internal interface ITelephonyHook
     {

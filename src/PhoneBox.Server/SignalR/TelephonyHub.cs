@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using PhoneBox.Abstractions;
 
-namespace PhoneBox.Server
+namespace PhoneBox.Server.SignalR
 {
     internal sealed class TelephonyHub : Hub<ITelephonyHub>
     {
@@ -16,11 +16,11 @@ namespace PhoneBox.Server
 
         public override Task OnConnectedAsync()
         {
-            string? userid = base.Context.UserIdentifier;
+            string? userid = Context.UserIdentifier;
             //Claim? phoneNumberClaim = base.Context.User?.Claims.FirstOrDefault(x => x.Type == ClaimTypes.HomePhone);
             string phoneNumber = "101";
             ///base.Context.Items["MyPhoneNo"] = phoneNumber;
-            this._connector.Register(new CallSubscriber(phoneNumber));
+            _connector.Register(new CallSubscriber(phoneNumber));
             Console.WriteLine("Client connected:" + userid);
             return Task.CompletedTask;
         }

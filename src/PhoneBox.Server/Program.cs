@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PhoneBox.Abstractions;
+using PhoneBox.Server.SignalR;
+using PhoneBox.Server.WebHook;
 
 namespace PhoneBox.Server
 {

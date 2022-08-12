@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
 using PhoneBox.Abstractions;
 
-namespace PhoneBox.Server
+namespace PhoneBox.Server.SignalR
 {
     internal sealed class TelephonyHubWorker : BackgroundService
     {
@@ -12,7 +12,7 @@ namespace PhoneBox.Server
 
         public TelephonyHubWorker(IHubContext<TelephonyHub, ITelephonyHub> hub)
         {
-            this._hub = hub;
+            _hub = hub;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -20,7 +20,7 @@ namespace PhoneBox.Server
             while (!stoppingToken.IsCancellationRequested)
             {
                 string phoneNumber = "101";
-                await this._hub.Clients.User(phoneNumber).SendMessage("Hey there:" + phoneNumber).ConfigureAwait(false);
+                await _hub.Clients.User(phoneNumber).SendMessage("Hey there:" + phoneNumber).ConfigureAwait(false);
                 await Task.Delay(1000, stoppingToken).ConfigureAwait(false);
             }
         }

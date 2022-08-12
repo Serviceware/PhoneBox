@@ -2,8 +2,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using PhoneBox.Abstractions;
+using PhoneBox.Server.SignalR;
 
-namespace PhoneBox.Server
+namespace PhoneBox.Server.WebHook
 {
     internal sealed class TelephonyHook : ITelephonyHook
     {

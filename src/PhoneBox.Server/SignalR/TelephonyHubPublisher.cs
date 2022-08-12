@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.SignalR;
 using PhoneBox.Abstractions;
 
-namespace PhoneBox.Server
+namespace PhoneBox.Server.SignalR
 {
     internal sealed class TelephonyHubPublisher : ITelephonyHubPublisher
     {
@@ -10,12 +10,12 @@ namespace PhoneBox.Server
 
         public TelephonyHubPublisher(IHubContext<TelephonyHub, ITelephonyHub> hub)
         {
-            this._hub = hub;
+            _hub = hub;
         }
 
         public async Task OnCall(CallSubscriber subscriber, CallInfo call)
         {
-            await this._hub.Clients.User(subscriber.PhoneNumber).SendMessage("OnCall:" + call.PhoneNumber).ConfigureAwait(false);
+            await _hub.Clients.User(subscriber.PhoneNumber).SendMessage("OnCall:" + call.PhoneNumber).ConfigureAwait(false);
         }
     }
 }

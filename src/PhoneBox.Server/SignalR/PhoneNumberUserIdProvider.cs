@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Security.Claims;
 
-namespace PhoneBox.Server
+namespace PhoneBox.Server.SignalR
 {
     internal sealed class PhoneNumberUserIdProvider : IUserIdProvider
     {
