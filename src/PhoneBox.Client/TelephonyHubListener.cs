@@ -60,9 +60,15 @@ namespace PhoneBox.Client
             return Task.CompletedTask;
         }
 
-        public Task Call(CallInfo call)
+        Task ITelephonyHub.ReceiveCallNotification(CallNotificationEvent call)
         {
-            Console.WriteLine($"Received call: {call.DebugInfo}");
+            Console.WriteLine($"Received call notification: {call.DebugInfo}");
+            return Task.CompletedTask;
+        }
+
+        Task ITelephonyHub.ReceiveCallState(CallStateEvent call)
+        {
+            Console.WriteLine($"Received call state: {call.DebugInfo}");
             return Task.CompletedTask;
         }
         #endregion

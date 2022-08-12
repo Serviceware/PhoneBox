@@ -13,9 +13,31 @@ namespace PhoneBox.Server.SignalR
             _hub = hub;
         }
 
-        public async Task OnCall(CallSubscriber subscriber, CallInfo call)
+        ITelephonySubscriptionHubPublisher ITelephonyHubPublisher.RetrieveSubscriptionHubPublisher(CallSubscriber subscriber)
         {
-            await _hub.Clients.User(subscriber.PhoneNumber).Call(call).ConfigureAwait(false);
+            return new SubscriptionPublisher(_hub, subscriber.PhoneNumber);
+        }
+
+
+        private sealed class SubscriptionPublisher : ITelephonySubscriptionHubPublisher
+        {
+            private readonly IHubContext<TelephonyHub, ITelephonyHub> _hub;
+            private readonly string _userid;
+            public SubscriptionPublisher(IHubContext<TelephonyHub, ITelephonyHub> hub, string userid)
+            {
+                _hub = hub;
+                _userid = userid;
+            }
+
+            async Task ITelephonySubscriptionHubPublisher.OnCallNotification(CallNotificationEvent call)
+            {
+                await _hub.Clients.User(_userid).ReceiveCallNotification(call).ConfigureAwait(false);
+            }
+
+            async Task ITelephonySubscriptionHubPublisher.OnCallState(CallStateEvent call)
+            {
+                await _hub.Clients.User(_userid).ReceiveCallState(call).ConfigureAwait(false);
+            }
         }
     }
 }

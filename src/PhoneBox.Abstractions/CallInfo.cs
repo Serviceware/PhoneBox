@@ -1,14 +1,26 @@
 ﻿namespace PhoneBox.Abstractions
 {
-    public readonly struct CallInfo
+    public readonly struct CallNotificationEvent
     {
         public string PhoneNumber { get; }
         public string DebugInfo { get; }
 
-        public CallInfo(string phoneNumber, string debugInfo)
+        public CallNotificationEvent(string phoneNumber, string debugInfo)
         {
             this.PhoneNumber = phoneNumber;
             this.DebugInfo = debugInfo;
         }
     }
+    public readonly struct CallStateEvent
+    {
+        public string PhoneNumber { get; }
+        public string DebugInfo { get; }
+
+        public CallStateEvent(string phoneNumber, string debugInfo)
+        {
+            this.PhoneNumber = phoneNumber;
+            this.DebugInfo = debugInfo;
+        }
+    }
+
 }

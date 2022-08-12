@@ -4,6 +4,12 @@ namespace PhoneBox.Abstractions
 {
     public interface ITelephonyHubPublisher
     {
-        Task OnCall(CallSubscriber subscriber, CallInfo call);
+        ITelephonySubscriptionHubPublisher RetrieveSubscriptionHubPublisher(CallSubscriber subscriber);
+    }
+    public interface ITelephonySubscriptionHubPublisher
+    {
+        Task OnCallNotification(CallNotificationEvent call);
+        Task OnCallState(CallStateEvent call);
+
     }
 }

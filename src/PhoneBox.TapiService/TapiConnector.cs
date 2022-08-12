@@ -11,26 +11,27 @@ namespace PhoneBox.TapiService
     public sealed class TapiConnector : IHostedService, ITelephonyConnector
     {
         private readonly ITelephonyHubPublisher _hubPublisher;
-        private readonly IDictionary<CallSubscriber, Func<CallInfo, Task>> _registrations;
+        private readonly IDictionary<CallSubscriber, ITelephonySubscriptionHubPublisher> _registrations;
         private TAPIClass? _tapiClient;
-        private CallNotification? _callNotification;
+        private TapiCallNotificationSink? _callNotification;
 
         public TapiConnector(ITelephonyHubPublisher hubPublisher)
         {
             this._hubPublisher = hubPublisher;
-            this._registrations = new Dictionary<CallSubscriber, Func<CallInfo, Task>>();
+            this._registrations = new Dictionary<CallSubscriber, ITelephonySubscriptionHubPublisher>();
         }
 
         public void Register(CallSubscriber subscriber)
         {
-            this._registrations.Add(subscriber, call => this._hubPublisher.OnCall(subscriber, call));
+            ITelephonySubscriptionHubPublisher subscriptionPublisher = _hubPublisher.RetrieveSubscriptionHubPublisher(subscriber);
+            this._registrations.Add(subscriber, subscriptionPublisher);
         }
 
         Task IHostedService.StartAsync(CancellationToken cancellationToken)
         {
             _tapiClient = new TAPIClass();
             _tapiClient.Initialize();
-            _callNotification = new CallNotification(this._registrations);
+            _callNotification = new TapiCallNotificationSink(this._registrations);
             this._tapiClient!.ITTAPIEventNotification_Event_Event += _callNotification.Event;
             return Task.CompletedTask;
         }
@@ -42,31 +43,49 @@ namespace PhoneBox.TapiService
             return Task.CompletedTask;
         }
 
-        private sealed class CallNotification : ITTAPIEventNotification
+        private sealed class TapiCallNotificationSink : ITTAPIEventNotification
         {
-            private readonly IDictionary<CallSubscriber, Func<CallInfo, Task>> _registrations;
+            private readonly IDictionary<CallSubscriber, ITelephonySubscriptionHubPublisher> _registrations;
 
-            public CallNotification(IDictionary<CallSubscriber, Func<CallInfo, Task>> registrations)
+            public TapiCallNotificationSink(IDictionary<CallSubscriber, ITelephonySubscriptionHubPublisher> registrations)
             {
                 this._registrations = registrations;
             }
 
             public async void Event(TAPI_EVENT tapiEvent, object pEvent)
             {
-                if (tapiEvent != TAPI_EVENT.TE_CALLNOTIFICATION)
-                    return;
+                if (tapiEvent == TAPI_EVENT.TE_CALLNOTIFICATION)
+                {
+                    await PublishCallNotificationEvent(tapiEvent, (ITCallNotificationEvent)pEvent);
+                }
+                else if (tapiEvent == TAPI_EVENT.TE_CALLSTATE)
+                {
+                    await PublishCallStateEvent(tapiEvent, (ITCallStateEvent)pEvent);
+                }
+            }
 
-                ITCallNotificationEvent notificationEvent = (ITCallNotificationEvent)pEvent;
-                ITCallInfo call = notificationEvent.Call;
+            private async Task PublishCallStateEvent(TAPI_EVENT tapiEvent, ITCallStateEvent stateEvent)
+            {
+                ITCallInfo call = stateEvent.Call;
                 CallSubscriber subscriber = new CallSubscriber(call.Address.AddressName);
-                if (!this._registrations.TryGetValue(subscriber, out Func<CallInfo, Task> onCall)) 
+                if (!this._registrations.TryGetValue(subscriber, out ITelephonySubscriptionHubPublisher subscriptionHubPublisher))
                     return;
 
                 string phoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
                 string debugInfo = CallInfoAsText(tapiEvent, call);
-                CallInfo callInfo = new CallInfo(phoneNumber, debugInfo);
-                await onCall(callInfo);
+                await subscriptionHubPublisher.OnCallState(new CallStateEvent(phoneNumber, debugInfo));
+            }
 
+            private async Task PublishCallNotificationEvent(TAPI_EVENT tapiEvent, ITCallNotificationEvent notificationEvent)
+            {
+                ITCallInfo call = notificationEvent.Call;
+                CallSubscriber subscriber = new CallSubscriber(call.Address.AddressName);
+                if (!this._registrations.TryGetValue(subscriber, out ITelephonySubscriptionHubPublisher subscriptionHubPublisher))
+                    return;
+
+                string phoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
+                string debugInfo = CallInfoAsText(tapiEvent, call);
+                await subscriptionHubPublisher.OnCallNotification(new CallNotificationEvent(phoneNumber, debugInfo));
             }
 
             private static string CallInfoAsText(TAPI_EVENT tapiEvent, ITCallInfo callInfo, string txt = "")
