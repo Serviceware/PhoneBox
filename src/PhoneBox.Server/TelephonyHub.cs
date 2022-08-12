@@ -18,8 +18,9 @@ namespace PhoneBox.Server
         {
             string? userid = base.Context.UserIdentifier;
             //Claim? phoneNumberClaim = base.Context.User?.Claims.FirstOrDefault(x => x.Type == ClaimTypes.HomePhone);
-            //string phoneNumber = "101";
+            string phoneNumber = "101";
             ///base.Context.Items["MyPhoneNo"] = phoneNumber;
+            this._connector.Register(new CallSubscriber(phoneNumber));
             Console.WriteLine("Client connected:" + userid);
             return Task.CompletedTask;
         }

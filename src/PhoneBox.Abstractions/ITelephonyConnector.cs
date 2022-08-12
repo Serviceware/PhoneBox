@@ -2,6 +2,6 @@
 {
     public interface ITelephonyConnector
     {
-        void Register(string phoneNumber);
+        void Register(CallSubscriber subscriber);
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using PhoneBox.Abstractions;
 
 namespace PhoneBox.Server
 {
@@ -18,8 +19,9 @@ namespace PhoneBox.Server
             IServiceCollection services = builder.Services;
             services.AddSignalR();
             services.AddSingleton<ITelephonyHook, TelephonyHook>();
+            services.AddSingleton<ITelephonyHubPublisher, TelephonyHubPublisher>();
             services.AddSingleton<IUserIdProvider, PhoneNumberUserIdProvider>();
-            services.AddSingleton<IHostedService, TelephonyHubPublisher>();
+            services.AddSingleton<IHostedService, TelephonyHubWorker>();
 
             TelephonyConnectorRegistrar.RegisterProvider(builder, services);
 

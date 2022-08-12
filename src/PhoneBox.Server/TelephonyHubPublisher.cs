@@ -1,12 +1,11 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Hosting;
 using PhoneBox.Abstractions;
+using PhoneBox.TapiService;
 
 namespace PhoneBox.Server
 {
-    internal sealed class TelephonyHubPublisher : BackgroundService
+    internal sealed class TelephonyHubPublisher : ITelephonyHubPublisher
     {
         private readonly IHubContext<TelephonyHub, ITelephonyHub> _hub;
 
@@ -15,14 +14,9 @@ namespace PhoneBox.Server
             this._hub = hub;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        public async Task OnCall(CallSubscriber subscriber, string phoneNumber)
         {
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                string phoneNumber = "101";
-                await this._hub.Clients.User(phoneNumber).SendMessage("Hey there:" + phoneNumber).ConfigureAwait(false);
-                await Task.Delay(1000, stoppingToken).ConfigureAwait(false);
-            }
+            await this._hub.Clients.User(subscriber.PhoneNumber).SendMessage("OnCall:" + phoneNumber).ConfigureAwait(false);
         }
     }
 }
