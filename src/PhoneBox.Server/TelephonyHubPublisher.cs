@@ -1,7 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using PhoneBox.Abstractions;
-using PhoneBox.TapiService;
 
 namespace PhoneBox.Server
 {
@@ -14,9 +13,9 @@ namespace PhoneBox.Server
             this._hub = hub;
         }
 
-        public async Task OnCall(CallSubscriber subscriber, string phoneNumber)
+        public async Task OnCall(CallSubscriber subscriber, CallInfo call)
         {
-            await this._hub.Clients.User(subscriber.PhoneNumber).SendMessage("OnCall:" + phoneNumber).ConfigureAwait(false);
+            await this._hub.Clients.User(subscriber.PhoneNumber).SendMessage("OnCall:" + call.PhoneNumber).ConfigureAwait(false);
         }
     }
 }

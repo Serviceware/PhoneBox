@@ -4,6 +4,6 @@ namespace PhoneBox.Abstractions
 {
     public interface ITelephonyHubPublisher
     {
-        Task OnCall(CallSubscriber subscriber, string phoneNumber);
+        Task OnCall(CallSubscriber subscriber, CallInfo call);
     }
 }
