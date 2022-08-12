@@ -59,6 +59,12 @@ namespace PhoneBox.Client
             Console.WriteLine($"Received message: {message}");
             return Task.CompletedTask;
         }
+
+        public Task Call(CallInfo call)
+        {
+            Console.WriteLine($"Received call: {call.DebugInfo}");
+            return Task.CompletedTask;
+        }
         #endregion
     }
 }

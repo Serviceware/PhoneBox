@@ -15,7 +15,7 @@ namespace PhoneBox.Server.SignalR
 
         public async Task OnCall(CallSubscriber subscriber, CallInfo call)
         {
-            await _hub.Clients.User(subscriber.PhoneNumber).SendMessage("OnCall:" + call.PhoneNumber).ConfigureAwait(false);
+            await _hub.Clients.User(subscriber.PhoneNumber).Call(call).ConfigureAwait(false);
         }
     }
 }
