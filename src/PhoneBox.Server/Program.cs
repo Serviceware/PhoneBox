@@ -25,7 +25,7 @@ namespace PhoneBox.Server
             services.AddCors(x => x.AddDefaultPolicy(y => y.AllowCredentials()
                                                            .AllowAnyHeader()
                                                            .WithMethods("GET", "POST")
-                                                           .WithOrigins(builder.Configuration["AllowedOrigins"]?.Split(';') ?? Array.Empty<string>())));
+                                                           .WithOrigins(builder.Configuration["CORS:AllowedOrigins"]?.Split(';') ?? Array.Empty<string>())));
             services.AddSignalR();
             services.AddSingleton<ITelephonyHook, TelephonyHook>();
             services.AddSingleton<ITelephonyHubPublisher, TelephonyHubPublisher>();
