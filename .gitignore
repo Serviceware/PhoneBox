@@ -25,3 +25,7 @@
 
 # Publish user settings
 *.pubxml.user
+
+# Developer configs
+appsettings.*.json
+!appsettings.Development.json

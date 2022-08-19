@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PhoneBox.Abstractions;
@@ -17,10 +18,14 @@ namespace PhoneBox.Server
         private static async Task Main(string[] args)
         {
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+            builder.Configuration.AddJsonFile($"appsettings.{Environment.MachineName}.json", optional: true);
             bool isDevelopment = builder.Environment.IsDevelopment();
 
             IServiceCollection services = builder.Services;
-            services.AddCors(x => x.AddDefaultPolicy(y => y.WithOrigins(builder.Configuration["AllowedOrigins"]?.Split(';') ?? Array.Empty<string>())));
+            services.AddCors(x => x.AddDefaultPolicy(y => y.AllowCredentials()
+                                                           .AllowAnyHeader()
+                                                           .WithMethods("GET", "POST")
+                                                           .WithOrigins(builder.Configuration["AllowedOrigins"]?.Split(';') ?? Array.Empty<string>())));
             services.AddSignalR();
             services.AddSingleton<ITelephonyHook, TelephonyHook>();
             services.AddSingleton<ITelephonyHubPublisher, TelephonyHubPublisher>();
