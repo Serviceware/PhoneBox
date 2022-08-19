@@ -23,6 +23,7 @@ namespace PhoneBox.Server.SignalR
         {
             private readonly IHubContext<TelephonyHub, ITelephonyHub> _hub;
             private readonly string _userid;
+
             public SubscriptionPublisher(IHubContext<TelephonyHub, ITelephonyHub> hub, string userid)
             {
                 _hub = hub;

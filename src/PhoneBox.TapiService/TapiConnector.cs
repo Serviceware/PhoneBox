@@ -45,79 +45,6 @@ namespace PhoneBox.TapiService
             return Task.CompletedTask;
         }
 
-        private sealed class TapiEventNotificationSink : ITTAPIEventNotification
-        {
-            private readonly IDictionary<string, TapiAddressSubscription> _registrations;
-
-            private sealed class TapiAddressSubscription
-            {
-                internal readonly string AddressName;
-                internal readonly CallSubscriber Subscriber;
-                internal readonly ITelephonySubscriptionHubPublisher Publisher;
-                public TapiAddressSubscription(ITAddress address, CallSubscriber subscriber, ITelephonySubscriptionHubPublisher subscriptionPublisher)
-                {
-                    AddressName = address.AddressName;
-                    Subscriber = subscriber;
-                    Publisher = subscriptionPublisher;
-                }
-            }
-
-            public TapiEventNotificationSink()
-            {
-                _registrations = new SortedDictionary<string, TapiAddressSubscription>();
-            }
-
-            public void AddAddressRegistration(ITAddress address, CallSubscriber subscriber, ITelephonySubscriptionHubPublisher subscriptionPublisher)
-            {
-                var addressRegistration = new TapiAddressSubscription(address, subscriber, subscriptionPublisher);
-                _registrations.Add(address.AddressName, addressRegistration);
-            }
-
-            public async void Event(TAPI_EVENT tapiEvent, object pEvent)
-            {
-                if (tapiEvent == TAPI_EVENT.TE_CALLNOTIFICATION)
-                {
-                    await PublishCallNotificationEvent(tapiEvent, (ITCallNotificationEvent)pEvent);
-                }
-                else if (tapiEvent == TAPI_EVENT.TE_CALLSTATE)
-                {
-                    await PublishCallStateEvent(tapiEvent, (ITCallStateEvent)pEvent);
-                }
-            }
-
-            private async Task PublishCallStateEvent(TAPI_EVENT tapiEvent, ITCallStateEvent stateEvent)
-            {
-                ITCallInfo call = stateEvent.Call;
-                if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription registration))
-                    return;
-
-                string phoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
-                string debugInfo = CallInfoAsText(tapiEvent, call);
-                await registration.Publisher.OnCallState(new CallStateEvent(phoneNumber, debugInfo));
-            }
-
-            private async Task PublishCallNotificationEvent(TAPI_EVENT tapiEvent, ITCallNotificationEvent notificationEvent)
-            {
-                ITCallInfo call = notificationEvent.Call;
-                if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription registration))
-                    return;
-
-                string debugInfo = CallInfoAsText(tapiEvent, call);
-                string callerPhoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
-                string callStateKey = call.CallState.ToString();
-                bool hasCallControl = call.Privilege == CALL_PRIVILEGE.CP_OWNER;
-                await registration.Publisher.OnCallNotification(new CallNotificationEvent(debugInfo, callerPhoneNumber, callStateKey, hasCallControl));
-            }
-
-            private static string CallInfoAsText(TAPI_EVENT tapiEvent, ITCallInfo callInfo, string txt = "")
-            {
-                int callId = callInfo.CallInfoLong[CALLINFO_LONG.CIL_CALLID];
-                string callerNumber = callInfo.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
-                //exception!!! string callerName = callInfo.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNAME];
-                return $"{tapiEvent} #{callId} S:{callInfo.CallState}, P:[{callInfo.Privilege}], Cu:[{callerNumber}] {txt}.";
-            }
-        }
-
         void ITelephonyConnector.Register(CallSubscriber subscriber)
         {
             ITAddress? tapiAddress = FindTapiAddressForSubscriber(subscriber);
@@ -158,6 +85,82 @@ namespace PhoneBox.TapiService
             } while (fetched > 0);
 
             return null;
+        }
+
+        private sealed class TapiEventNotificationSink : ITTAPIEventNotification
+        {
+            private readonly IDictionary<string, TapiAddressSubscription> _registrations;
+
+            public TapiEventNotificationSink()
+            {
+                _registrations = new SortedDictionary<string, TapiAddressSubscription>();
+            }
+
+            public void AddAddressRegistration(ITAddress address, CallSubscriber subscriber, ITelephonySubscriptionHubPublisher subscriptionPublisher)
+            {
+                var addressRegistration = new TapiAddressSubscription(address, subscriber, subscriptionPublisher);
+                _registrations.Add(address.AddressName, addressRegistration);
+            }
+
+            public async void Event(TAPI_EVENT tapiEvent, object pEvent)
+            {
+                switch (tapiEvent)
+                {
+                    case TAPI_EVENT.TE_CALLNOTIFICATION:
+                        await this.PublishCallNotificationEvent(tapiEvent, (ITCallNotificationEvent)pEvent);
+                        break;
+
+                    case TAPI_EVENT.TE_CALLSTATE:
+                        await this.PublishCallStateEvent(tapiEvent, (ITCallStateEvent)pEvent);
+                        break;
+                }
+            }
+
+            private async Task PublishCallStateEvent(TAPI_EVENT tapiEvent, ITCallStateEvent stateEvent)
+            {
+                ITCallInfo call = stateEvent.Call;
+                if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription registration))
+                    return;
+
+                string phoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
+                string debugInfo = CallInfoAsText(tapiEvent, call);
+                await registration.Publisher.OnCallState(new CallStateEvent(phoneNumber, debugInfo));
+            }
+
+            private async Task PublishCallNotificationEvent(TAPI_EVENT tapiEvent, ITCallNotificationEvent notificationEvent)
+            {
+                ITCallInfo call = notificationEvent.Call;
+                if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription registration))
+                    return;
+
+                string debugInfo = CallInfoAsText(tapiEvent, call);
+                string callerPhoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
+                string callStateKey = call.CallState.ToString();
+                bool hasCallControl = call.Privilege == CALL_PRIVILEGE.CP_OWNER;
+                await registration.Publisher.OnCallNotification(new CallNotificationEvent(debugInfo, callerPhoneNumber, callStateKey, hasCallControl));
+            }
+
+            private static string CallInfoAsText(TAPI_EVENT tapiEvent, ITCallInfo callInfo, string txt = "")
+            {
+                int callId = callInfo.CallInfoLong[CALLINFO_LONG.CIL_CALLID];
+                string callerNumber = callInfo.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
+                //exception!!! string callerName = callInfo.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNAME];
+                return $"{tapiEvent} #{callId} S:{callInfo.CallState}, P:[{callInfo.Privilege}], Cu:[{callerNumber}] {txt}.";
+            }
+        }
+
+        private sealed class TapiAddressSubscription
+        {
+            public string AddressName { get; }
+            public CallSubscriber Subscriber { get; }
+            public ITelephonySubscriptionHubPublisher Publisher { get; }
+
+            public TapiAddressSubscription(ITAddress address, CallSubscriber subscriber, ITelephonySubscriptionHubPublisher subscriptionPublisher)
+            {
+                AddressName = address.AddressName;
+                Subscriber = subscriber;
+                Publisher = subscriptionPublisher;
+            }
         }
     }
 }
