@@ -35,7 +35,7 @@ namespace PhoneBox.Server
         private static TelephonyConfiguration GetTelephonyConfiguration(WebApplicationBuilder builder)
         {
             TelephonyConfiguration configuration = new TelephonyConfiguration();
-            builder.Configuration.GetSection(nameof(TelephonyConfiguration)).Bind(configuration);
+            builder.Configuration.GetSection("Telephony").Bind(configuration);
             return configuration;
         }
 
