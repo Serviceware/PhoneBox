@@ -1,5 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,7 @@ namespace PhoneBox.Server
             bool isDevelopment = builder.Environment.IsDevelopment();
 
             IServiceCollection services = builder.Services;
+            services.AddCors(x => x.AddDefaultPolicy(y => y.WithOrigins(builder.Configuration["AllowedOrigins"]?.Split(';') ?? Array.Empty<string>())));
             services.AddSignalR();
             services.AddSingleton<ITelephonyHook, TelephonyHook>();
             services.AddSingleton<ITelephonyHubPublisher, TelephonyHubPublisher>();
@@ -32,6 +35,8 @@ namespace PhoneBox.Server
             TelephonyConnectorRegistrar.RegisterProvider(builder, services);
 
             WebApplication app = builder.Build();
+
+            app.UseCors();
 
             app.MapHub<TelephonyHub>("/TelephonyHub");
 
