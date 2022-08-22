@@ -1,6 +1,6 @@
 ﻿namespace PhoneBox.Server
 {
-    internal sealed class TelephonyConfiguration
+    internal sealed class TelephonyOptions
     {
         public TelephonyProvider Provider { get; set; }
     }

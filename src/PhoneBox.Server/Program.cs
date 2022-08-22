@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
@@ -20,7 +22,16 @@ namespace PhoneBox.Server
             builder.Configuration.AddJsonFile($"appsettings.{Environment.MachineName}.json", optional: true);
             bool isDevelopment = builder.Environment.IsDevelopment();
 
+            AuthorizationOptions authorizationConfiguration = builder.Configuration.GetConfiguration<AuthorizationOptions>("Authorization");
+
             IServiceCollection services = builder.Services;
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                    .AddJwtBearer(x =>
+                    {
+                        x.Authority = authorizationConfiguration.Authority;
+                        x.TokenValidationParameters.ValidAudience = authorizationConfiguration.Audience;
+                        x.RequireHttpsMetadata = !isDevelopment;
+                    });
             services.AddCors(x => x.AddDefaultPolicy(y => y.AllowCredentials()
                                                            .AllowAnyHeader()
                                                            .WithMethods("GET", "POST")
@@ -40,14 +51,21 @@ namespace PhoneBox.Server
 
             WebApplication app = builder.Build();
 
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.UseCors();
 
             app.MapHub<TelephonyHub>("/TelephonyHub");
 
             if (isDevelopment)
+            {
                 app.MapGet("/TelephonyHook/{fromPhoneNumber}/{toPhoneNumber}", (string fromPhoneNumber, string toPhoneNumber, ITelephonyHook hook, HttpContext context) => hook.HandleGet(fromPhoneNumber, toPhoneNumber, context));
+            }
             else
-                app.MapPost("/TelephonyHook", (WebHookRequest request, ITelephonyHook hook, HttpContext context) => hook.HandlePost(request, context));
+            {
+                app.MapPost("/TelephonyHook", (WebHookRequest request, ITelephonyHook hook, HttpContext context) => hook.HandlePost(request, context))
+                   .RequireAuthorization();
+            }
 
             await app.RunAsync().ConfigureAwait(false);
         }

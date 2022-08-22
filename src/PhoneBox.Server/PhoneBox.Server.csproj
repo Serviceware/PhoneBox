@@ -11,6 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\PhoneBox.Abstractions\PhoneBox.Abstractions.csproj" />
     <ProjectReference Include="..\PhoneBox.TapiService\PhoneBox.TapiService.csproj" />
   </ItemGroup>

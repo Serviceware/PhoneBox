@@ -18,7 +18,7 @@ namespace PhoneBox.Server
 
         public static void RegisterProvider(WebApplicationBuilder builder, IServiceCollection services)
         {
-            TelephonyConfiguration configuration = GetTelephonyConfiguration(builder);
+            TelephonyOptions configuration = builder.Configuration.GetConfiguration<TelephonyOptions>("Telephony");
             if (configuration.Provider == TelephonyProvider.None)
             {
                 // No specific provider configured
@@ -30,13 +30,6 @@ namespace PhoneBox.Server
             services.AddSingleton(connectorType);
             services.AddSingleton(typeof(ITelephonyConnector), x => x.GetRequiredService(connectorType));
             services.AddSingleton(typeof(IHostedService), x => x.GetRequiredService(connectorType));
-        }
-
-        private static TelephonyConfiguration GetTelephonyConfiguration(WebApplicationBuilder builder)
-        {
-            TelephonyConfiguration configuration = new TelephonyConfiguration();
-            builder.Configuration.GetSection("Telephony").Bind(configuration);
-            return configuration;
         }
 
         private static Type GetConnectorType(TelephonyProvider provider)

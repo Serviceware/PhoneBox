@@ -5,11 +5,12 @@
     <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1"   />
     <GlobalPackageReference Include="Nerdbank.GitVersioning"      Version="3.4.255" />
 
-    <PackageReference Update="coverlet.collector"                  Version="$(CoverletVersion)" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
-    <PackageReference Update="Microsoft.AspNetCore.SignalR.Client" Version="$(MicrosoftAspNetCoreSignalRClientVersion)" />
-    <PackageReference Update="Microsoft.Extensions.Hosting"        Version="$(MicrosoftExtensionsHostingVersion)" />
-    <PackageReference Update="Microsoft.NET.Test.Sdk"              Version="$(MicrosoftTestSdkVersion)" />
-    <PackageReference Update="MSTest.TestAdapter"                  Version="$(MSTestAdapterVersion)"    />
-    <PackageReference Update="MSTest.TestFramework"                Version="$(MSTestFrameworkVersion)"  />
+    <PackageReference Update="coverlet.collector"                            Version="$(CoverletVersion)" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
+    <PackageReference Update="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCoreAuthenticationJwtBearerVersion)" />
+    <PackageReference Update="Microsoft.AspNetCore.SignalR.Client"           Version="$(MicrosoftAspNetCoreSignalRClientVersion)" />
+    <PackageReference Update="Microsoft.Extensions.Hosting"                  Version="$(MicrosoftExtensionsHostingVersion)" />
+    <PackageReference Update="Microsoft.NET.Test.Sdk"                        Version="$(MicrosoftTestSdkVersion)" />
+    <PackageReference Update="MSTest.TestAdapter"                            Version="$(MSTestAdapterVersion)"    />
+    <PackageReference Update="MSTest.TestFramework"                          Version="$(MSTestFrameworkVersion)"  />
   </ItemGroup>                                                                                             
 </Project>

@@ -2,6 +2,7 @@
   <PropertyGroup>
 
     <!-- Runtime -->
+    <MicrosoftAspNetCoreAuthenticationJwtBearerVersion>6.0.8</MicrosoftAspNetCoreAuthenticationJwtBearerVersion>
     <MicrosoftAspNetCoreSignalRClientVersion>6.0.8</MicrosoftAspNetCoreSignalRClientVersion>
     <MicrosoftExtensionsHostingVersion>6.0.1</MicrosoftExtensionsHostingVersion>
 
