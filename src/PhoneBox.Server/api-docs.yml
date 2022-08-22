@@ -1,0 +1,106 @@
+openapi: 3.0.1
+info:
+  title: PhoneBox
+  version: 1.0.0
+servers:
+  - url: https://localhost/
+paths:
+  /TelephonyHook/{fromPhoneNumber}/{toPhoneNumber}:
+    get:
+      tags:
+        - WebHook
+      parameters:
+        - name: fromPhoneNumber
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: toPhoneNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+      security:
+      - openIdConnect: [ ]
+  /TelephonyHub/SendMessage:
+    post:
+      tags:
+        - TelephonyHub
+      parameters:
+        - name: message
+          in: query
+          required: true
+          schema:
+            type: string
+      responses: 
+        '204':
+          description: NoContent
+      security:
+      - openIdConnect: [ ]
+  /TelephonyHub/ReceiveCallNotification:
+    post:
+      tags:
+        - TelephonyHub
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallNotificationEvent'
+        required: true
+      responses: 
+        '204':
+          description: NoContent
+      security:
+      - openIdConnect: [ ]
+  /TelephonyHub/ReceiveCallState:
+    post:
+      tags:
+        - TelephonyHub
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallStateEvent'
+        required: true
+      responses: 
+        '204':
+          description: NoContent
+      security:
+      - openIdConnect: [ ]
+components:
+  schemas:
+    CallNotificationEvent:
+      required:
+        - DebugInfo
+        - CallerPhoneNumber
+        - CallStateKey
+        - HasCallControl
+      type: object
+      properties:
+        DebugInfo:
+          type: string
+        CallerPhoneNumber:
+          type: string
+        CallStateKey:
+          type: string
+        HasCallControl:
+          type: boolean
+      additionalProperties: false
+    CallStateEvent:
+      required:
+        - PhoneNumber
+        - DebugInfo
+      type: object
+      properties:
+        PhoneNumber:
+          type: string
+        DebugInfo:
+          type: string
+      additionalProperties: false
+  securitySchemes:
+    openIdConnect:
+      type: openIdConnect
+      openIdConnectUrl: /.well-known/openid-configuration
