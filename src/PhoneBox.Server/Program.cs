@@ -30,7 +30,7 @@ namespace PhoneBox.Server
                     {
                         x.Authority = authorizationConfiguration.Authority;
                         x.TokenValidationParameters.ValidAudience = authorizationConfiguration.Audience;
-                        x.RequireHttpsMetadata = !isDevelopment;
+                        x.RequireHttpsMetadata = !isDevelopment || authorizationConfiguration.Authority?.StartsWith("http:", StringComparison.OrdinalIgnoreCase) is null or false;
                     });
             services.AddCors(x => x.AddDefaultPolicy(y => y.AllowCredentials()
                                                            .AllowAnyHeader()

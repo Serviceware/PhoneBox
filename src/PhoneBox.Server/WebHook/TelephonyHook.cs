@@ -27,7 +27,7 @@ namespace PhoneBox.Server.WebHook
             string? userId = context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
             string? phoneNumber = context.User.Claims.FirstOrDefault(x => x.Type == "phone_number")?.Value;
 
-            await this._hub.Clients.User(toPhoneNumber).SendMessage($"Webhook called: {fromPhoneNumber} [Authorization: {(isAuthenticated ? $"{{ userId: {userId}, phoneNumber: {phoneNumber} }}" : "none")}").ConfigureAwait(false);
+            await this._hub.Clients.User(toPhoneNumber).SendMessage($"Webhook called: {fromPhoneNumber} [Authorization: {(isAuthenticated ? $"{{ userId: {userId}, phoneNumber: {phoneNumber} }} " : "none")}]").ConfigureAwait(false);
             context.Response.StatusCode = 200;
             await context.Response.WriteAsync("Thx!").ConfigureAwait(false);
         }
