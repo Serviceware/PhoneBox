@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
@@ -23,6 +22,7 @@ namespace PhoneBox.Server
             bool isDevelopment = builder.Environment.IsDevelopment();
 
             AuthorizationOptions authorizationConfiguration = builder.Configuration.GetConfiguration<AuthorizationOptions>("Authorization");
+            CorsOptions corsConfiguration = builder.Configuration.GetConfiguration<CorsOptions>("CORS");
 
             IServiceCollection services = builder.Services;
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -35,7 +35,7 @@ namespace PhoneBox.Server
             services.AddCors(x => x.AddDefaultPolicy(y => y.AllowCredentials()
                                                            .AllowAnyHeader()
                                                            .WithMethods("GET", "POST")
-                                                           .WithOrigins(builder.Configuration["CORS:AllowedOrigins"]?.Split(';') ?? Array.Empty<string>())));
+                                                           .WithOrigins(corsConfiguration.AllowedOrigins?.Split(';') ?? Array.Empty<string>())));
             services.AddSignalR();
             services.AddSingleton<ITelephonyHook, TelephonyHook>();
             services.AddSingleton<ITelephonyHubPublisher, TelephonyHubPublisher>();

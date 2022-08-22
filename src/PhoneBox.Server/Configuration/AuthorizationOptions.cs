@@ -1,7 +1,8 @@
-﻿namespace PhoneBox.Server;
-
-internal sealed class AuthorizationOptions
+﻿namespace PhoneBox.Server
 {
-    public string? Authority { get; set; }
-    public string? Audience { get; set; }
+    internal sealed class AuthorizationOptions
+    {
+        public string? Authority { get; set; }
+        public string? Audience { get; set; }
+    }
 }
