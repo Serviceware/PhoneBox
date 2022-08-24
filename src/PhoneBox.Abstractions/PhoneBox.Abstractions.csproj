@@ -5,4 +5,14 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <Import Project="..\PhoneBox.Generators\build\PhoneBox.Generators.targets"/>
+
+  <ItemGroup>
+    <None Include="..\..\shared\Schemas\OpenApiSchema.yml" Link="Schemas\OpenApiSchema.yml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PhoneBox.Generators\PhoneBox.Generators.csproj" PrivateAssets="all" OutputItemType="Analyzer" />
+  </ItemGroup>
+
 </Project>

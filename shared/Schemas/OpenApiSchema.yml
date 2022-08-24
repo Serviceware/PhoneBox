@@ -9,6 +9,7 @@ paths:
     get:
       tags:
         - WebHook
+      operationId: OnCall
       parameters:
         - name: fromPhoneNumber
           in: path
@@ -29,6 +30,7 @@ paths:
     post:
       tags:
         - TelephonyHub
+      operationId: SendMessage
       parameters:
         - name: message
           in: query
@@ -40,10 +42,12 @@ paths:
           description: NoContent
       security:
       - openIdConnect: [ ]
+      x-websocket: true
   /TelephonyHub/ReceiveCallNotification:
     post:
       tags:
         - TelephonyHub
+      operationId: ReceiveCallNotification
       requestBody:
         content:
           application/json:
@@ -55,10 +59,12 @@ paths:
           description: NoContent
       security:
       - openIdConnect: [ ]
+      x-websocket: true
   /TelephonyHub/ReceiveCallState:
     post:
       tags:
         - TelephonyHub
+      operationId: ReceiveCallState
       requestBody:
         content:
           application/json:
@@ -70,6 +76,7 @@ paths:
           description: NoContent
       security:
       - openIdConnect: [ ]
+      x-websocket: true
 components:
   schemas:
     CallNotificationEvent:

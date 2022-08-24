@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  
+  <PropertyGroup>
+    <TargetFrameworks>net6.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <Compile Remove="Resources\*.cs" />
+    <EmbeddedResource Include="Resources\*" LogicalName="%(EmbeddedResource.Filename)%(EmbeddedResource.Extension)" />
+    <Compile Update="Resource.Designer.cs" DesignTime="True" AutoGen="True" DependentUpon="Resource.resx" />
+    <EmbeddedResource Update="Resource.resx" Generator="ResXFileCodeGenerator" LastGenOutput="Resource.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\shared\Extensions\EnumerableExtensions.cs" Link="Extensions\EnumerableExtensions.cs" />
+    <None Include="..\..\shared\Schemas\OpenApiSchema.yml" Link="Schemas\OpenApiSchema.yml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Dibix.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="MSTest.TestAdapter" />
+    <PackageReference Include="MSTest.TestFramework" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PhoneBox.Generators\PhoneBox.Generators.csproj" />
+  </ItemGroup>
+
+</Project>

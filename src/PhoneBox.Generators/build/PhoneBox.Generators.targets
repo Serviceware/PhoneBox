@@ -1,0 +1,10 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Target Name="PhoneBoxGenerators" BeforeTargets="GenerateMSBuildEditorConfigFileShouldRun">
+    <ItemGroup>
+      <AdditionalFiles Include="@(None)" Condition="'%(Extension)' == '.yml'" />
+      <CompilerVisibleItemMetadata Include="None" MetadataName="Namespace" />
+    </ItemGroup>
+  </Target>
+
+</Project>

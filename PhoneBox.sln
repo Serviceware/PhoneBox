@@ -52,6 +52,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.TapiService", "src
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Abstractions", "src\PhoneBox.Abstractions\PhoneBox.Abstractions.csproj", "{FD803573-12F5-4238-B309-5FB5CA4336E0}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Generators", "src\PhoneBox.Generators\PhoneBox.Generators.csproj", "{C8D7321A-6DD6-45C4-8C50-3F74EB2A6E52}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Generators.Tests", "tests\PhoneBox.Generators.Test\PhoneBox.Generators.Tests.csproj", "{4B0B617C-81CD-4545-ACD4-7799FB0E951D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -78,6 +82,14 @@ Global
 		{FD803573-12F5-4238-B309-5FB5CA4336E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FD803573-12F5-4238-B309-5FB5CA4336E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FD803573-12F5-4238-B309-5FB5CA4336E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8D7321A-6DD6-45C4-8C50-3F74EB2A6E52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8D7321A-6DD6-45C4-8C50-3F74EB2A6E52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8D7321A-6DD6-45C4-8C50-3F74EB2A6E52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8D7321A-6DD6-45C4-8C50-3F74EB2A6E52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B0B617C-81CD-4545-ACD4-7799FB0E951D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B0B617C-81CD-4545-ACD4-7799FB0E951D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B0B617C-81CD-4545-ACD4-7799FB0E951D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B0B617C-81CD-4545-ACD4-7799FB0E951D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -89,6 +101,8 @@ Global
 		{B509D9D4-8C41-469D-9FB8-E8F90C747D8B} = {118B0BCE-C81F-4DA0-814C-2F8AC4867710}
 		{392824A7-CBC1-4501-895D-29261C9B7EAE} = {118B0BCE-C81F-4DA0-814C-2F8AC4867710}
 		{FD803573-12F5-4238-B309-5FB5CA4336E0} = {118B0BCE-C81F-4DA0-814C-2F8AC4867710}
+		{C8D7321A-6DD6-45C4-8C50-3F74EB2A6E52} = {118B0BCE-C81F-4DA0-814C-2F8AC4867710}
+		{4B0B617C-81CD-4545-ACD4-7799FB0E951D} = {B1D5F4EA-842C-494E-9B2F-1FF271591E29}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F25BA702-70BE-4E04-8583-C71369C6D3D0}
