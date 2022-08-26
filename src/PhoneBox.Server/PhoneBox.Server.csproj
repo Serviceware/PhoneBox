@@ -6,8 +6,18 @@
     <NoWarn>$(NoWarn);IL2026</NoWarn>
   </PropertyGroup>
 
+  <Import Project="..\PhoneBox.Generators\build\PhoneBox.Generators.targets" />
+
   <ItemGroup>
     <Compile Include="..\..\shared\Extensions\EnumerableExtensions.cs" Link="Extensions\EnumerableExtensions.cs" />
+    <None Include="..\..\shared\Schemas\OpenApiSchema.yml" Link="Schemas\OpenApiSchema.yml" ContractNamespace="PhoneBox.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="PhoneBox.Generators.SignalRHubGeneration">
+      <_Parameter1>PhoneBox.Generators.SignalRHubGenerationOutputs.Implementation</_Parameter1>
+      <_Parameter1_IsLiteral>true</_Parameter1_IsLiteral>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>
@@ -16,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PhoneBox.Abstractions\PhoneBox.Abstractions.csproj" />
+    <ProjectReference Include="..\PhoneBox.Generators\PhoneBox.Generators.csproj" PrivateAssets="all" OutputItemType="Analyzer" />
     <ProjectReference Include="..\PhoneBox.TapiService\PhoneBox.TapiService.csproj" />
   </ItemGroup>
 

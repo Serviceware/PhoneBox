@@ -6,8 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Default generator dependencies -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    
+    <!-- Third party generator dependencies -->
     <PackageReference Include="Microsoft.OpenApi" PrivateAssets="all" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.OpenApi.Readers" PrivateAssets="all" GeneratePathProperty="true" />
     <PackageReference Include="SharpYaml" PrivateAssets="all" GeneratePathProperty="true" />

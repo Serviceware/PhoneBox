@@ -5,10 +5,17 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <Import Project="..\PhoneBox.Generators\build\PhoneBox.Generators.targets"/>
+  <Import Project="..\PhoneBox.Generators\build\PhoneBox.Generators.targets" />
 
   <ItemGroup>
     <None Include="..\..\shared\Schemas\OpenApiSchema.yml" Link="Schemas\OpenApiSchema.yml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="PhoneBox.Generators.SignalRHubGeneration">
+      <_Parameter1>PhoneBox.Generators.SignalRHubGenerationOutputs.Interface | PhoneBox.Generators.SignalRHubGenerationOutputs.Contract</_Parameter1>
+      <_Parameter1_IsLiteral>true</_Parameter1_IsLiteral>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>

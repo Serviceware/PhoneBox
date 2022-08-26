@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.OpenApi.Any;
@@ -16,90 +18,112 @@ namespace PhoneBox.Generators
     [Generator]
     public sealed class SignalRHubGenerator : IIncrementalGenerator
     {
+        private static readonly string AttributeTypeName = typeof(SignalRHubGenerationAttribute).FullName;
+
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             IncrementalValueProvider<string?> rootNamespace = context.AnalyzerConfigOptionsProvider.Select((x, _) => GetRootNamespace(x));
             IncrementalValueProvider<string?> assemblyName = context.CompilationProvider.Select((x, _) => x.AssemblyName);
+            IncrementalValuesProvider<SignalRHubGenerationOutputs?> outputFilter = context.SyntaxProvider.CreateSyntaxProvider(IsAssemblyAttribute, CollectOutputFilter);
             IncrementalValuesProvider<OpenApiDocumentContainer> documents = context.AdditionalTextsProvider.Where(static file => file.Path.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))
                                                                                    .Select(LoadYamlFile)
                                                                                    .Where(x => x.HasValue)
                                                                                    .Select((x, _) => x!.Value);
 
             var all = documents.Combine(context.AnalyzerConfigOptionsProvider)
+                               .Combine(outputFilter.Collect())
                                .Combine(rootNamespace)
                                .Combine(assemblyName)
                                .Select(static (x, _) => new
                                {
-                                   Container = x.Left.Left.Left,
+                                   Container = x.Left.Left.Left.Left,
                                    RootNamespace = x.Left.Right,
                                    AssemblyName = x.Right,
-                                   AnalyzerConfigOptionsProvider = x.Left.Left.Right
+                                   OutputFilter = x.Left.Left.Right.FirstOrDefault(x => x != null) ?? SignalRHubGenerationOutputs.All,
+                                   AnalyzerConfigOptionsProvider = x.Left.Left.Left.Right
                                });
 
-            context.RegisterSourceOutput(all, (x, y) => CollectSources(x, y.Container, y.RootNamespace, y.AssemblyName, y.AnalyzerConfigOptionsProvider));
+            context.RegisterSourceOutput(all, (x, y) => CollectSources(x, y.Container, y.RootNamespace, y.AssemblyName, y.OutputFilter, y.AnalyzerConfigOptionsProvider));
         }
 
-        private static void CollectSources(SourceProductionContext context, OpenApiDocumentContainer container, string? rootNamespace, string? assemblyName, AnalyzerConfigOptionsProvider analyzerConfigOptionsProvider)
+        private static void CollectSources(SourceProductionContext context, OpenApiDocumentContainer container, string? rootNamespace, string? assemblyName, SignalRHubGenerationOutputs outputFilter, AnalyzerConfigOptionsProvider analyzerConfigOptionsProvider)
         {
             AnalyzerConfigOptions options = analyzerConfigOptionsProvider.GetOptions(container.SourceFile);
-            _ = options.TryGetValue("build_metadata.none.Namespace", out string? configuredNamespace);
-
-            if (configuredNamespace == "")
-                configuredNamespace = null;
+            string? configuredNamespace = GetMetadataProperty(options, "build_metadata.none.Namespace");
+            string? contractNamespace = GetMetadataProperty(options, "build_metadata.none.ContractNamespace");
 
             ReportOpenApiErrors(context, container.Path, container.Diagnostic);
 
             string? @namespace = configuredNamespace ?? rootNamespace ?? assemblyName;
             ICollection<OpenApiHubContract> contracts = CollectContracts(container.Document.Components.Schemas).ToArray();
-            if (contracts.Any())
+            if (contracts.Any() && outputFilter.HasFlag(SignalRHubGenerationOutputs.Contract))
             {
-                context.AddSource("_Model.generated.cs", GenerateModels(@namespace, contracts));
+                foreach (OpenApiHubContract contract in contracts)
+                {
+                    AddModel(context, @namespace, contract);
+                }
             }
 
             foreach (IGrouping<string, OpenApiHubMethod> hub in CollectHubMethods(container).GroupBy(x => x.HubName))
             {
-                string hubName = hub.Key;
-                string fileName = $"{hubName}.generated.cs";
-                context.AddSource(fileName, GenerateInterface(hubName, @namespace, hub));
+                string hubName = NormalizeHubName(hub.Key);
+                string interfaceName = $"I{hubName}Hub";
+
+                if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Interface))
+                    AddInterface(context, interfaceName, @namespace, hub);
+
+                if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Implementation))
+                    AddImplementation(context, interfaceName, hubName, @namespace, contractNamespace, hub);
             }
         }
 
-        private static string GenerateInterface(string hubName, string? @namespace, IEnumerable<OpenApiHubMethod> methods)
+        private static void AddImplementation(SourceProductionContext context, string interfaceName, string hubName, string? @namespace, string? contractNamespace, IEnumerable<OpenApiHubMethod> methods)
         {
-            string normalizedHubName = hubName;
-            int hubSuffixIndex = normalizedHubName.LastIndexOf("Hub", StringComparison.Ordinal);
-            if (hubSuffixIndex > 0) 
-                normalizedHubName = normalizedHubName.Substring(0, hubSuffixIndex);
+            string className = $"{hubName}Hub";
 
-            string methodsStr = String.Join(Environment.NewLine, methods.Select(GenerateMethod));
+            ICollection<string> usings = new SortedSet<string>();
+            usings.Add("Microsoft.AspNetCore.SignalR");
+
+            if (contractNamespace != null)
+                usings.Add(contractNamespace);
+
+            string usingsStr = String.Join(Environment.NewLine, usings.Select(x => $"using {x};"));
+            string fileName = $"{className}.generated.cs";
+            string content = $@"{usingsStr}
+
+namespace {@namespace}
+{{
+    public partial class {className} : Hub<{interfaceName}>
+    {{
+    }}
+}}";
+            context.AddSource(fileName, content);
+        }
+
+        private static void AddInterface(SourceProductionContext context, string interfaceName, string? @namespace, IEnumerable<OpenApiHubMethod> methods)
+        {
+            string fileName = $"{interfaceName}.generated.cs";
+            string methodsStr = String.Join(Environment.NewLine, methods.Select(GenerateInterfaceMethod));
             string content = $@"using System.Threading.Tasks;
 
 namespace {@namespace}
 {{
-    public interface I{normalizedHubName}Hub
+    public interface {interfaceName}
     {{
 {methodsStr}
     }}
 }}";
-            return content;
+            context.AddSource(fileName, content);
         }
 
-        private static string GenerateModels(string? @namespace, IEnumerable<OpenApiHubContract> contracts)
-        {
-            string contractsStr = String.Join($"{Environment.NewLine}{Environment.NewLine}", contracts.Select(GenerateModel));
-            string content = $@"namespace {@namespace}
-{{
-{contractsStr}
-}}";
-            return content;
-        }
-
-        private static string GenerateModel(OpenApiHubContract contract)
+        private static void AddModel(SourceProductionContext context, string? @namespace, OpenApiHubContract contract)
         {
             string propertiesStr = String.Join(Environment.NewLine, contract.Properties.Select(x => $"        public {x.TypeName} {x.PropertyName} {{ get; }}"));
             string ctorParametersStr = String.Join(", ", contract.Properties.Select(x => $"{x.TypeName} {ToCamelCase(x.PropertyName)}"));
             string ctorAssignmentsStr = String.Join(Environment.NewLine, contract.Properties.Select(x => $"            this.{x.PropertyName} = {ToCamelCase(x.PropertyName)};"));
-            string content = $@"    public sealed class {contract.Name}
+            string content = $@"namespace {@namespace}
+{{
+    public sealed class {contract.Name}
     {{
 {propertiesStr}
 
@@ -107,14 +131,15 @@ namespace {@namespace}
         {{
 {ctorAssignmentsStr}
         }}
-    }}";
-            return content;
+    }}
+}}";
+            context.AddSource($"{contract.Name}.generated.cs", content);
         }
 
-        private static string GenerateMethod(OpenApiHubMethod x)
+        private static string GenerateInterfaceMethod(OpenApiHubMethod method)
         {
-            string parametersStr = String.Join(", ", x.Parameters.Select(x => $"{x.TypeName} {x.ParameterName}"));
-            string content = $"        Task {x.MethodName}({parametersStr});";
+            string parametersStr = String.Join(", ", method.Parameters.Select(x => $"{x.TypeName} {x.ParameterName}"));
+            string content = $"        Task {method.MethodName}({parametersStr});";
             return content;
         }
 
@@ -244,9 +269,63 @@ namespace {@namespace}
             context.ReportDiagnostic(Diagnostic.Create(descriptor, Location.Create(path, new TextSpan(), new LinePositionSpan())));
         }
 
+        private static bool IsAssemblyAttribute(SyntaxNode node, CancellationToken cancellationToken)
+        {
+            return node is AttributeListSyntax { Target: { } } attributeList && attributeList.Target.Identifier.IsKind(SyntaxKind.AssemblyKeyword);
+        }
+
+        private static SignalRHubGenerationOutputs? CollectOutputFilter(GeneratorSyntaxContext context, CancellationToken cancellationToken)
+        {
+            AttributeListSyntax attributeList = (AttributeListSyntax)context.Node;
+            foreach (AttributeSyntax attribute in attributeList.Attributes)
+            {
+                if (context.SemanticModel.GetSymbolInfo(attribute).Symbol is not IMethodSymbol attributeSymbol)
+                    return null;
+
+                string displayString = attributeSymbol.ContainingType.ToDisplayString();
+                if (displayString != AttributeTypeName)
+                    return null;
+
+                if (attribute.ArgumentList?.Arguments == null)
+                    return null;
+
+                SeparatedSyntaxList<AttributeArgumentSyntax> arguments = attribute.ArgumentList.Arguments;
+                if (!arguments.Any())
+                    return null;
+
+                Optional<object?> outputFilterValue = context.SemanticModel.GetConstantValue(arguments[0].Expression);
+                if (!outputFilterValue.HasValue)
+                    return null;
+
+                SignalRHubGenerationOutputs? outputFilter = (SignalRHubGenerationOutputs?)(int?)outputFilterValue.Value;
+                return outputFilter;
+            }
+            return null;
+        }
+
         private static string? GetRootNamespace(AnalyzerConfigOptionsProvider analyzerConfigOptionsProvider)
         {
             return analyzerConfigOptionsProvider.GlobalOptions.TryGetValue("build_property.rootnamespace", out string? rootNamespace) ? rootNamespace : null;
+        }
+
+        private static string? GetMetadataProperty(AnalyzerConfigOptions options, string key)
+        {
+            _ = options.TryGetValue(key, out string? value);
+
+            if (value == "")
+                value = null;
+
+            return value;
+        }
+
+        private static string NormalizeHubName(string hubName)
+        {
+            string normalizedHubName = hubName;
+            const string hubSuffix = "Hub";
+            if (normalizedHubName.EndsWith(hubSuffix, StringComparison.Ordinal))
+                normalizedHubName = normalizedHubName.Substring(0, normalizedHubName.Length - hubSuffix.Length);
+
+            return normalizedHubName;
         }
 
         private static string ToCamelCase(string s)
