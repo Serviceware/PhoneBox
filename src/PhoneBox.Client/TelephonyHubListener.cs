@@ -9,12 +9,22 @@ namespace PhoneBox.Client
 {
     internal sealed class TelephonyHubListener : IHostedService, ITelephonyHub
     {
+        private readonly IAccessTokenProvider _accessTokenProvider;
+
+        public TelephonyHubListener(IAccessTokenProvider accessTokenProvider)
+        {
+            this._accessTokenProvider = accessTokenProvider;
+        }
+
         #region IHostedService Members
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             Console.WriteLine("Starting listener");
 
-            HubConnection connection = new HubConnectionBuilder().WithUrl("https://localhost:63440/TelephonyHub")
+            HubConnection connection = new HubConnectionBuilder().WithUrl("https://localhost:63440/TelephonyHub", x =>
+                                                                 {
+                                                                     x.AccessTokenProvider = this._accessTokenProvider.GetAccessToken;
+                                                                 })
                                                                  .WithAutomaticReconnect()
                                                                  .Build();
             connection.Closed += OnHubConnectionClosed;

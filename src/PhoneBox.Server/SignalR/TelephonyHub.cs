@@ -5,7 +5,7 @@ using PhoneBox.Abstractions;
 
 namespace PhoneBox.Server.SignalR
 {
-    internal sealed class TelephonyHub : Hub<ITelephonyHub>
+    public sealed partial class TelephonyHub : Hub<ITelephonyHub>
     {
         private readonly ITelephonyConnector _connector;
 

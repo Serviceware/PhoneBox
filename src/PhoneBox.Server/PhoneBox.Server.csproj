@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\shared\Extensions\EnumerableExtensions.cs" Link="Extensions\EnumerableExtensions.cs" />
-    <None Include="..\..\shared\Schemas\OpenApiSchema.yml" Link="Schemas\OpenApiSchema.yml" ContractNamespace="PhoneBox.Abstractions" />
+    <None Include="..\..\shared\Schemas\OpenApiSchema.yml" Link="Schemas\OpenApiSchema.yml" Namespace="$(RootNamespace).SignalR" ContractNamespace="PhoneBox.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

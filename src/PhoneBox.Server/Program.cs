@@ -55,7 +55,8 @@ namespace PhoneBox.Server
             app.UseAuthorization();
             app.UseCors();
 
-            app.MapHub<TelephonyHub>("/TelephonyHub");
+            app.MapHub<TelephonyHub>("/TelephonyHub")
+               .RequireAuthorization();
 
             if (isDevelopment)
             {
