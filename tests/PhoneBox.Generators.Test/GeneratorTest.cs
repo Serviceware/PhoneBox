@@ -1,10 +1,15 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using Dibix.Testing;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
@@ -15,11 +20,73 @@ namespace PhoneBox.Generators.Tests
     public sealed class GeneratorTest : TestBase
     {
         [TestMethod]
-        public void SignalRHubGenerator()
+        public void SignalRHubGenerator_Contracts()
         {
+            (GeneratorDriverRunResult? runResult, IList<SyntaxTree>? syntaxTrees, Compilation? _) = this.CompileContracts();
+
+            Assert.AreEqual(3, runResult.GeneratedTrees.Length);
+            Assert.AreEqual(3, runResult.Results[0].GeneratedSources.Length);
+            Assert.AreEqual(4, syntaxTrees.Count);
+        }
+
+        [TestMethod]
+        public void SignalRHubGenerator_Implementation()
+        {
+            (GeneratorDriverRunResult? _, IList<SyntaxTree>? _, Compilation? contractCompilation) = this.CompileContracts();
+
+            string contractAssemblyFilePath = System.IO.Path.Combine(base.TestDirectory, $"{typeof(GeneratorTest).Namespace}.Contracts.generated.dll");
+            EmitResult emitResult = contractCompilation.Emit(contractAssemblyFilePath);
+            RoslynUtility.VerifyCompilation(emitResult.Diagnostics);
+            Assert.IsTrue(emitResult.Success, "emitResult.Success");
+
+            (GeneratorDriverRunResult? runResult, IList<SyntaxTree>? syntaxTrees, Compilation? _) = this.RunGenerator
+            (
+                filter: SignalRHubGenerationOutputs.Implementation
+              , metadataNamespace: null
+              , metadataContractNamespace: "PhoneBox.Abstractions"
+              , expectedFiles: new[]
+                {
+                    "TelephonyHub.generated.cs"
+                }
+              , MetadataReference.CreateFromFile(typeof(Hub).Assembly.Location)
+              , MetadataReference.CreateFromFile(contractAssemblyFilePath)
+            );
+
+            Assert.AreEqual(1, runResult.GeneratedTrees.Length);
+            Assert.AreEqual(1, runResult.Results[0].GeneratedSources.Length);
+            Assert.AreEqual(2, syntaxTrees.Count);
+        }
+
+        private (GeneratorDriverRunResult runResult, IList<SyntaxTree> syntaxTrees, Compilation outputCompilation) CompileContracts() => this.RunGenerator
+        (
+            filter: SignalRHubGenerationOutputs.Model | SignalRHubGenerationOutputs.Interface
+          , metadataNamespace: "PhoneBox.Abstractions"
+          , metadataContractNamespace: null
+          , expectedFiles: new[]
+            {
+                "CallNotificationEvent.generated.cs"
+              , "CallStateEvent.generated.cs"
+              , "ITelephonyHub.generated.cs"
+            }
+        );
+
+        private (GeneratorDriverRunResult runResult, IList<SyntaxTree> syntaxTrees, Compilation outputCompilation) RunGenerator(SignalRHubGenerationOutputs filter, string? metadataNamespace, string? metadataContractNamespace, string[] expectedFiles, params MetadataReference[] additionalReferences)
+        {
+            IEnumerable<string> filterFlags = Enum.GetValues<SignalRHubGenerationOutputs>()
+                                                  .Where(x => filter.HasFlag(x))
+                                                  .Select(x => $"{typeof(SignalRHubGenerationOutputs)}.{x}");
+            string filterFlagsStr = String.Join(" | ", filterFlags);
+            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText($"[assembly: {typeof(SignalRHubGenerationAttribute)}({filterFlagsStr})]");
+            Assembly netStandardAssembly = AppDomain.CurrentDomain.GetAssemblies().Single(x => x.GetName().Name == "netstandard");
+            Assembly systemRuntimeAssembly = AppDomain.CurrentDomain.GetAssemblies().Single(x => x.GetName().Name == "System.Runtime");
             CSharpCompilation inputCompilation = CSharpCompilation.Create(null)
                                                                   .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
-                                                                  .AddReference<object>();
+                                                                  .AddReference<object>()
+                                                                  .AddReference<SignalRHubGenerationAttribute>()
+                                                                  .AddReferences(MetadataReference.CreateFromFile(netStandardAssembly.Location))
+                                                                  .AddReferences(MetadataReference.CreateFromFile(systemRuntimeAssembly.Location))
+                                                                  .AddReferences(additionalReferences)
+                                                                  .AddSyntaxTrees(syntaxTree);
             RoslynUtility.VerifyCompilation(inputCompilation);
 
             Mock<AdditionalText> additionalText = new Mock<AdditionalText>(MockBehavior.Strict);
@@ -38,8 +105,14 @@ namespace PhoneBox.Generators.Tests
             fileAnalyzerConfigOptions.Setup(x => x.TryGetValue("build_metadata.none.Namespace", out It.Ref<string?>.IsAny))
                                      .Returns((string _, out string? value) =>
                                      {
-                                         value = "PhoneBox.Generators.Tests";
-                                         return true;
+                                         value = metadataNamespace;
+                                         return metadataNamespace != null;
+                                     });
+            fileAnalyzerConfigOptions.Setup(x => x.TryGetValue("build_metadata.none.ContractNamespace", out It.Ref<string?>.IsAny))
+                                     .Returns((string _, out string? value) =>
+                                     {
+                                         value = metadataContractNamespace;
+                                         return metadataContractNamespace != null;
                                      });
             analyzerConfigOptionsProvider.SetupGet(x => x.GlobalOptions).Returns(globalAnalyzerConfigOptions.Object);
             analyzerConfigOptionsProvider.Setup(x => x.GetOptions(additionalText.Object)).Returns(fileAnalyzerConfigOptions.Object);
@@ -53,24 +126,29 @@ namespace PhoneBox.Generators.Tests
             );
 
             driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out Compilation outputCompilation, out ImmutableArray<Diagnostic> diagnostics);
-
+            
             GeneratorDriverRunResult runResult = driver.GetRunResult();
             RoslynUtility.VerifyCompilation(runResult.Diagnostics);
-            Assert.AreEqual(2, runResult.GeneratedTrees.Length);
             Assert.AreEqual(1, runResult.Results.Length);
-            Assert.AreEqual(2, runResult.Results[0].GeneratedSources.Length);
             RoslynUtility.VerifyCompilation(runResult.Results[0]);
-            Assert.AreEqual(2, outputCompilation.SyntaxTrees.Count());
+            IList<SyntaxTree> syntaxTrees = outputCompilation.SyntaxTrees.ToArray();
+            Assert.AreEqual(inputCompilation.SyntaxTrees[0], syntaxTrees[0]);
 
-            foreach (SyntaxTree syntaxTree in outputCompilation.SyntaxTrees)
+            for (int i = 1; i < syntaxTrees.Count; i++)
             {
-                string expectedCode = base.GetEmbeddedResourceContent(System.IO.Path.GetFileName(syntaxTree.FilePath));
-                string actualCode = syntaxTree.ToString();
+                SyntaxTree outputSyntaxTree = syntaxTrees[i];
+                string fileName = System.IO.Path.GetFileName(outputSyntaxTree.FilePath);
+                string actualCode = outputSyntaxTree.ToString();
+                base.AddResultFile(fileName, actualCode);
+                Assert.AreEqual(expectedFiles[i - 1], fileName);
+                string expectedCode = base.GetEmbeddedResourceContent(fileName);
                 base.AssertEqual(expectedCode, actualCode, "cs");
             }
 
             RoslynUtility.VerifyCompilation(outputCompilation);
             RoslynUtility.VerifyCompilation(diagnostics);
+
+            return (runResult, syntaxTrees, outputCompilation);
         }
     }
 }

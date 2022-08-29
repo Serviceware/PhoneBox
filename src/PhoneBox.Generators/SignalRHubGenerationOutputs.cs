@@ -8,7 +8,7 @@ namespace PhoneBox.Generators
         None = 0,
         Interface = 1,
         Implementation = 2,
-        Contract = 4,
-        All = Interface | Implementation | Contract
+        Model = 4,
+        All = Interface | Implementation | Model
     }
 }

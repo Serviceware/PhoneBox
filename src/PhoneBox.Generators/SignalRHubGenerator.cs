@@ -55,12 +55,12 @@ namespace PhoneBox.Generators
             ReportOpenApiErrors(context, container.Path, container.Diagnostic);
 
             string? @namespace = configuredNamespace ?? rootNamespace ?? assemblyName;
-            ICollection<OpenApiHubContract> contracts = CollectContracts(container.Document.Components.Schemas).ToArray();
-            if (contracts.Any() && outputFilter.HasFlag(SignalRHubGenerationOutputs.Contract))
+            ICollection<OpenApiHubModel> models = CollectModels(container.Document.Components.Schemas).ToArray();
+            if (models.Any() && outputFilter.HasFlag(SignalRHubGenerationOutputs.Model))
             {
-                foreach (OpenApiHubContract contract in contracts)
+                foreach (OpenApiHubModel model in models)
                 {
-                    AddModel(context, @namespace, contract);
+                    AddModel(context, @namespace, model);
                 }
             }
 
@@ -116,24 +116,24 @@ namespace {@namespace}
             context.AddSource(fileName, content);
         }
 
-        private static void AddModel(SourceProductionContext context, string? @namespace, OpenApiHubContract contract)
+        private static void AddModel(SourceProductionContext context, string? @namespace, OpenApiHubModel model)
         {
-            string propertiesStr = String.Join(Environment.NewLine, contract.Properties.Select(x => $"        public {x.TypeName} {x.PropertyName} {{ get; }}"));
-            string ctorParametersStr = String.Join(", ", contract.Properties.Select(x => $"{x.TypeName} {ToCamelCase(x.PropertyName)}"));
-            string ctorAssignmentsStr = String.Join(Environment.NewLine, contract.Properties.Select(x => $"            this.{x.PropertyName} = {ToCamelCase(x.PropertyName)};"));
+            string propertiesStr = String.Join(Environment.NewLine, model.Properties.Select(x => $"        public {x.TypeName} {x.PropertyName} {{ get; }}"));
+            string ctorParametersStr = String.Join(", ", model.Properties.Select(x => $"{x.TypeName} {ToCamelCase(x.PropertyName)}"));
+            string ctorAssignmentsStr = String.Join(Environment.NewLine, model.Properties.Select(x => $"            this.{x.PropertyName} = {ToCamelCase(x.PropertyName)};"));
             string content = $@"namespace {@namespace}
 {{
-    public sealed class {contract.Name}
+    public sealed class {model.Name}
     {{
 {propertiesStr}
 
-        public {contract.Name}({ctorParametersStr})
+        public {model.Name}({ctorParametersStr})
         {{
 {ctorAssignmentsStr}
         }}
     }}
 }}";
-            context.AddSource($"{contract.Name}.generated.cs", content);
+            context.AddSource($"{model.Name}.generated.cs", content);
         }
 
         private static string GenerateInterfaceMethod(OpenApiHubMethod method)
@@ -143,23 +143,23 @@ namespace {@namespace}
             return content;
         }
 
-        private static IEnumerable<OpenApiHubContract> CollectContracts(IDictionary<string, OpenApiSchema> schemas)
+        private static IEnumerable<OpenApiHubModel> CollectModels(IDictionary<string, OpenApiSchema> schemas)
         {
             foreach (KeyValuePair<string, OpenApiSchema> schemaPair in schemas)
             {
                 string schemaName = schemaPair.Key;
-                OpenApiSchema contractSchema = schemaPair.Value;
+                OpenApiSchema modelSchema = schemaPair.Value;
 
-                OpenApiHubContract contract = new OpenApiHubContract(schemaName);
+                OpenApiHubModel model = new OpenApiHubModel(schemaName);
 
-                foreach (KeyValuePair<string, OpenApiSchema> propertyPair in contractSchema.Properties)
+                foreach (KeyValuePair<string, OpenApiSchema> propertyPair in modelSchema.Properties)
                 {
                     string propertyName = propertyPair.Key;
                     OpenApiSchema propertySchema = propertyPair.Value;
-                    contract.Properties.Add(new OpenApiHubContractProperty(propertyName, GetCSharpTypeName(propertySchema)));
+                    model.Properties.Add(new OpenApiHubModelProperty(propertyName, GetCSharpTypeName(propertySchema)));
                 }
 
-                yield return contract;
+                yield return model;
             }
         }
 
@@ -411,24 +411,24 @@ namespace {@namespace}
             }
         }
 
-        private readonly struct OpenApiHubContract
+        private readonly struct OpenApiHubModel
         {
             public string Name { get; }
-            public ICollection<OpenApiHubContractProperty> Properties { get; }
+            public ICollection<OpenApiHubModelProperty> Properties { get; }
 
-            public OpenApiHubContract(string name)
+            public OpenApiHubModel(string name)
             {
                 this.Name = name;
-                this.Properties = new Collection<OpenApiHubContractProperty>();
+                this.Properties = new Collection<OpenApiHubModelProperty>();
             }
         }
 
-        private readonly struct OpenApiHubContractProperty
+        private readonly struct OpenApiHubModelProperty
         {
             public string PropertyName { get; }
             public string TypeName { get; }
 
-            public OpenApiHubContractProperty(string propertyName, string typeName)
+            public OpenApiHubModelProperty(string propertyName, string typeName)
             {
                 this.PropertyName = propertyName;
                 this.TypeName = typeName;

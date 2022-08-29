@@ -1,11 +1,9 @@
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
+using PhoneBox.Abstractions;
 
 namespace PhoneBox.Generators.Tests
 {
-    public interface ITelephonyHub
+    public partial class TelephonyHub : Hub<ITelephonyHub>
     {
-        Task SendMessage(string message);
-        Task ReceiveCallNotification(CallNotificationEvent content);
-        Task ReceiveCallState(CallStateEvent content);
     }
 }

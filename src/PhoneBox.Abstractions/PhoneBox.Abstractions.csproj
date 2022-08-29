@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <AssemblyAttribute Include="PhoneBox.Generators.SignalRHubGeneration">
-      <_Parameter1>PhoneBox.Generators.SignalRHubGenerationOutputs.Interface | PhoneBox.Generators.SignalRHubGenerationOutputs.Contract</_Parameter1>
+      <_Parameter1>PhoneBox.Generators.SignalRHubGenerationOutputs.Interface | PhoneBox.Generators.SignalRHubGenerationOutputs.Model</_Parameter1>
       <_Parameter1_IsLiteral>true</_Parameter1_IsLiteral>
     </AssemblyAttribute>
   </ItemGroup>
