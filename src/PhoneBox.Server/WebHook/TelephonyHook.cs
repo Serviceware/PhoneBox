@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
@@ -24,8 +23,8 @@ namespace PhoneBox.Server.WebHook
         private async Task HandleWebHookRequest(string fromPhoneNumber, string toPhoneNumber, HttpContext context)
         {
             bool isAuthenticated = context.User.Identity?.IsAuthenticated == true;
-            string? userId = context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
-            string? phoneNumber = context.User.Claims.FirstOrDefault(x => x.Type == "phone_number")?.Value;
+            string? userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            string? phoneNumber = context.User.FindFirstValue(ClaimType.PhoneNumber);
 
             await this._hub.Clients.User(toPhoneNumber).SendMessage($"Webhook called: {fromPhoneNumber} [Authorization: {(isAuthenticated ? $"{{ userId: {userId}, phoneNumber: {phoneNumber} }} " : "none")}]").ConfigureAwait(false);
             context.Response.StatusCode = 200;

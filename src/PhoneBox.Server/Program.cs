@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
@@ -32,10 +33,21 @@ namespace PhoneBox.Server
                         x.TokenValidationParameters.ValidAudience = authorizationConfiguration.Audience;
                         x.RequireHttpsMetadata = !isDevelopment || authorizationConfiguration.Authority?.StartsWith("http:", StringComparison.OrdinalIgnoreCase) is null or false;
                     });
-            services.AddCors(x => x.AddDefaultPolicy(y => y.AllowCredentials()
-                                                           .AllowAnyHeader()
-                                                           .WithMethods("GET", "POST")
-                                                           .WithOrigins(corsConfiguration.AllowedOrigins?.Split(';') ?? Array.Empty<string>())));
+            services.AddAuthorization(x =>
+            {
+                x.AddPolicy("WebHookConsumer", y => y.RequireAuthenticatedUser()
+                                                     .Build());
+                x.AddPolicy("HubConsumer", y => y.RequireAuthenticatedUser()
+                                                 .RequireClaim(ClaimType.PhoneNumber)
+                                                 .Build());
+            });
+            services.AddCors(x =>
+            {
+                x.AddDefaultPolicy(y => y.AllowCredentials()
+                                         .AllowAnyHeader()
+                                         .WithMethods("GET", "POST")
+                                         .WithOrigins(corsConfiguration.AllowedOrigins?.Split(';') ?? Array.Empty<string>()));
+            });
             services.AddSignalR();
             services.AddSingleton<ITelephonyHook, TelephonyHook>();
             services.AddSingleton<ITelephonyHubPublisher, TelephonyHubPublisher>();
@@ -56,7 +68,7 @@ namespace PhoneBox.Server
             app.UseCors();
 
             app.MapHub<TelephonyHub>("/TelephonyHub")
-               .RequireAuthorization();
+               .RequireAuthorization("HubConsumer");
 
             if (isDevelopment)
             {
@@ -65,7 +77,7 @@ namespace PhoneBox.Server
             else
             {
                 app.MapPost("/TelephonyHook", (WebHookRequest request, ITelephonyHook hook, HttpContext context) => hook.HandlePost(request, context))
-                   .RequireAuthorization();
+                   .RequireAuthorization("WebHookConsumer");
             }
 
             await app.RunAsync().ConfigureAwait(false);

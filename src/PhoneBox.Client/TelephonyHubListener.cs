@@ -10,6 +10,7 @@ namespace PhoneBox.Client
     internal sealed class TelephonyHubListener : IHostedService, ITelephonyHub
     {
         private readonly IAccessTokenProvider _accessTokenProvider;
+        private HubConnection? _connection;
 
         public TelephonyHubListener(IAccessTokenProvider accessTokenProvider)
         {
@@ -21,27 +22,27 @@ namespace PhoneBox.Client
         {
             Console.WriteLine("Starting listener");
 
-            HubConnection connection = new HubConnectionBuilder().WithUrl("https://localhost:63440/TelephonyHub", x =>
-                                                                 {
-                                                                     x.AccessTokenProvider = this._accessTokenProvider.GetAccessToken;
-                                                                 })
-                                                                 .WithAutomaticReconnect()
-                                                                 .Build();
-            connection.Closed += OnHubConnectionClosed;
-            connection.On<string>(this.SendMessage);
-            connection.On<CallNotificationEvent>(this.ReceiveCallNotification);
-            connection.On<CallStateEvent>(this.ReceiveCallState);
+            this._connection = new HubConnectionBuilder().WithUrl("https://localhost:63440/TelephonyHub", x =>
+                                                         {
+                                                             x.AccessTokenProvider = this._accessTokenProvider.GetAccessToken;
+                                                         })
+                                                         .WithAutomaticReconnect()
+                                                         .Build();
+            this._connection.Closed += OnHubConnectionClosed;
+            _ = this._connection.On<string>(this.SendMessage);
+            _ = this._connection.On<CallNotificationEvent>(this.ReceiveCallNotification);
+            _ = this._connection.On<CallStateEvent>(this.ReceiveCallState);
 
-            await connection.StartAsync(cancellationToken).ConfigureAwait(false);
+            await this._connection.StartAsync(cancellationToken).ConfigureAwait(false);
 
             Console.WriteLine("Listener started");
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
             Console.WriteLine("Stopping listener");
+            await (this._connection?.DisposeAsync() ?? ValueTask.CompletedTask).ConfigureAwait(false);
             Console.WriteLine("Listener stopped");
-            return Task.CompletedTask;
         }
 
         private static Task OnHubConnectionClosed(Exception? exception)
