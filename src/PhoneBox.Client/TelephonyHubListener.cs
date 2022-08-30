@@ -33,7 +33,21 @@ namespace PhoneBox.Client
             _ = this._connection.On<CallNotificationEvent>(this.ReceiveCallNotification);
             _ = this._connection.On<CallStateEvent>(this.ReceiveCallState);
 
-            await this._connection.StartAsync(cancellationToken).ConfigureAwait(false);
+            int retries = 0;
+            while (true)
+            {
+                try
+                {
+                    await this._connection.StartAsync(cancellationToken).ConfigureAwait(false);
+                    break;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    if (++retries == 5)
+                        throw;
+                }
+            }
 
             Console.WriteLine("Listener started");
         }
