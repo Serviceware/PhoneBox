@@ -107,11 +107,11 @@ namespace PhoneBox.TapiService
                 switch (tapiEvent)
                 {
                     case TAPI_EVENT.TE_CALLNOTIFICATION:
-                        await this.PublishCallNotificationEvent(tapiEvent, (ITCallNotificationEvent)pEvent);
+                        await this.PublishCallNotificationEvent(tapiEvent, (ITCallNotificationEvent)pEvent).ConfigureAwait(false);
                         break;
 
                     case TAPI_EVENT.TE_CALLSTATE:
-                        await this.PublishCallStateEvent(tapiEvent, (ITCallStateEvent)pEvent);
+                        await this.PublishCallStateEvent(tapiEvent, (ITCallStateEvent)pEvent).ConfigureAwait(false);
                         break;
                 }
             }
@@ -119,25 +119,25 @@ namespace PhoneBox.TapiService
             private async Task PublishCallStateEvent(TAPI_EVENT tapiEvent, ITCallStateEvent stateEvent)
             {
                 ITCallInfo call = stateEvent.Call;
-                if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription registration))
+                if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription? registration))
                     return;
 
                 string phoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
                 string debugInfo = CallInfoAsText(tapiEvent, call);
-                await registration.Publisher.OnCallState(new CallStateEvent(phoneNumber, debugInfo));
+                await registration.Publisher.OnCallState(new CallStateEvent(phoneNumber, debugInfo)).ConfigureAwait(false);
             }
 
             private async Task PublishCallNotificationEvent(TAPI_EVENT tapiEvent, ITCallNotificationEvent notificationEvent)
             {
                 ITCallInfo call = notificationEvent.Call;
-                if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription registration))
+                if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription? registration))
                     return;
 
                 string debugInfo = CallInfoAsText(tapiEvent, call);
                 string callerPhoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
                 string callStateKey = call.CallState.ToString();
                 bool hasCallControl = call.Privilege == CALL_PRIVILEGE.CP_OWNER;
-                await registration.Publisher.OnCallNotification(new CallNotificationEvent(debugInfo, callerPhoneNumber, callStateKey, hasCallControl));
+                await registration.Publisher.OnCallNotification(new CallNotificationEvent(debugInfo, callerPhoneNumber, callStateKey, hasCallControl)).ConfigureAwait(false);
             }
 
             private static string CallInfoAsText(TAPI_EVENT tapiEvent, ITCallInfo callInfo, string txt = "")

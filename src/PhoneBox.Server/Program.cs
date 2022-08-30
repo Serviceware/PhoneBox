@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -69,15 +68,7 @@ namespace PhoneBox.Server
             app.MapHub<TelephonyHub>("/TelephonyHub")
                .RequireAuthorization("HubConsumer");
 
-            if (isDevelopment)
-            {
-                app.MapGet("/TelephonyHook/{fromPhoneNumber}/{toPhoneNumber}", (string fromPhoneNumber, string toPhoneNumber, ITelephonyHook hook, HttpContext context) => hook.HandleGet(fromPhoneNumber, toPhoneNumber, context));
-            }
-            else
-            {
-                app.MapPost("/TelephonyHook", (WebHookRequest request, ITelephonyHook hook, HttpContext context) => hook.HandlePost(request, context))
-                   .RequireAuthorization("WebHookConsumer");
-            }
+            TelephonyConnectorRegistrar.SetupProvider(app);
 
             await app.RunAsync().ConfigureAwait(false);
         }

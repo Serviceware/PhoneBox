@@ -3,6 +3,7 @@
     internal enum TelephonyProvider
     {
         None,
+        WebHook,
         Tapi
     }
 }
