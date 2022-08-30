@@ -1,0 +1,45 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "PhoneBox.Client",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/PhoneBox.Client/bin/Debug/net6.0/PhoneBox.Client.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/PhoneBox.Client",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    },
+    {
+      "name": "PhoneBox.Server",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${cwd}/src/PhoneBox.Server/bin/Debug/net6.0/PhoneBox.Server.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/PhoneBox.Server",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/TelephonyHook/102/101"
+      }
+    },
+    {
+      "name": ".NET Core Attach",
+      "type": "coreclr",
+      "request": "attach"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Server & Client",
+      "configurations": [
+        "PhoneBox.Server",
+        "PhoneBox.Client"
+      ]
+    }
+  ]
+}
