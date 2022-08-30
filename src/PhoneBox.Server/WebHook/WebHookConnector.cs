@@ -15,11 +15,9 @@ namespace PhoneBox.Server.WebHook
             {
                 application.MapGet("/TelephonyHook/{fromPhoneNumber}/{toPhoneNumber}", (string fromPhoneNumber, string toPhoneNumber, ITelephonyHook hook, HttpContext context) => hook.HandleGet(fromPhoneNumber, toPhoneNumber, context));
             }
-            else
-            {
-                application.MapPost("/TelephonyHook", (WebHookRequest request, ITelephonyHook hook, HttpContext context) => hook.HandlePost(request, context))
-                           .RequireAuthorization("WebHookConsumer");
-            }
+
+            application.MapPost("/TelephonyHook", (WebHookRequest request, ITelephonyHook hook, HttpContext context) => hook.HandlePost(request, context))
+                       .RequireAuthorization("WebHookConsumer");
         }
     }
 }

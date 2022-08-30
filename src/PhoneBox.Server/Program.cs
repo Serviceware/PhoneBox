@@ -20,23 +20,25 @@ namespace PhoneBox.Server
             builder.Configuration.AddJsonFile($"appsettings.{Environment.MachineName}.json", optional: true);
             bool isDevelopment = builder.Environment.IsDevelopment();
 
-            AuthorizationOptions authorizationConfiguration = builder.Configuration.GetConfiguration<AuthorizationOptions>("Authorization");
-            CorsOptions corsConfiguration = builder.Configuration.GetConfiguration<CorsOptions>("CORS");
+            IConfigurationSection authorizationConfiguration = builder.Configuration.GetSection("Authorization");
+            AuthorizationOptions authorizationOptions = authorizationConfiguration.Bind<AuthorizationOptions>();
+            CorsOptions corsConfiguration = builder.Configuration.Bind<CorsOptions>("CORS");
 
             IServiceCollection services = builder.Services;
+            services.Configure<AuthorizationOptions>(authorizationConfiguration);
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddJwtBearer(x =>
                     {
-                        x.Authority = authorizationConfiguration.Authority;
-                        x.TokenValidationParameters.ValidAudience = authorizationConfiguration.Audience;
-                        x.RequireHttpsMetadata = !isDevelopment || authorizationConfiguration.Authority?.StartsWith("http:", StringComparison.OrdinalIgnoreCase) is null or false;
+                        x.Authority = authorizationOptions.Authority;
+                        x.TokenValidationParameters.ValidAudience = authorizationOptions.Audience;
+                        x.RequireHttpsMetadata = !isDevelopment || authorizationOptions.Authority?.StartsWith("http:", StringComparison.OrdinalIgnoreCase) is null or false;
                     });
             services.AddAuthorization(x =>
             {
                 x.AddPolicy("WebHookConsumer", y => y.RequireAuthenticatedUser()
                                                      .Build());
                 x.AddPolicy("HubConsumer", y => y.RequireAuthenticatedUser()
-                                                 .RequireClaim(ClaimType.PhoneNumber)
+                                                 .RequireClaim(authorizationOptions.SubscriberIdClaimType)
                                                  .Build());
             });
             services.AddCors(x =>
@@ -49,7 +51,7 @@ namespace PhoneBox.Server
             services.AddSignalR();
             services.AddSingleton<ITelephonyHook, TelephonyHook>();
             services.AddSingleton<ITelephonyHubPublisher, TelephonyHubPublisher>();
-            services.AddSingleton<IUserIdProvider, PhoneNumberUserIdProvider>();
+            services.AddSingleton<IUserIdProvider, SubscriberIdClaimUserIdProvider>();
 
             if (isDevelopment)
             {
