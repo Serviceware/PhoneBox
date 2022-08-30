@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PhoneBox.Abstractions;
 using PhoneBox.Server.SignalR;
-using PhoneBox.Server.WebHook;
 
 namespace PhoneBox.Server
 {
@@ -35,8 +34,6 @@ namespace PhoneBox.Server
                     });
             services.AddAuthorization(x =>
             {
-                x.AddPolicy("WebHookConsumer", y => y.RequireAuthenticatedUser()
-                                                     .Build());
                 x.AddPolicy("HubConsumer", y => y.RequireAuthenticatedUser()
                                                  .RequireClaim(authorizationOptions.SubscriberIdClaimType)
                                                  .Build());
@@ -49,8 +46,7 @@ namespace PhoneBox.Server
                                          .WithOrigins(corsConfiguration.AllowedOrigins?.Split(';') ?? Array.Empty<string>()));
             });
             services.AddSignalR();
-            services.AddSingleton<ITelephonyHook, TelephonyHook>();
-            services.AddSingleton<ITelephonyHubPublisher, TelephonyHubPublisher>();
+            services.AddSingleton<ITelephonyEventDispatcherFactory, TelephonyEventHubDispatcherFactory>();
             services.AddSingleton<IUserIdProvider, SubscriberIdClaimUserIdProvider>();
 
             if (isDevelopment)
@@ -59,7 +55,7 @@ namespace PhoneBox.Server
                 services.AddSingleton<IHostedService, TelephonyHubWorker>();
             }
 
-            TelephonyConnectorRegistrar.RegisterProvider(builder, services);
+            TelephonyConnectorRegistrar.RegisterProvider(builder);
 
             WebApplication app = builder.Build();
 
@@ -70,7 +66,7 @@ namespace PhoneBox.Server
             app.MapHub<TelephonyHub>("/TelephonyHub")
                .RequireAuthorization("HubConsumer");
 
-            TelephonyConnectorRegistrar.SetupProvider(app);
+            TelephonyConnectorRegistrar.ConfigureProvider(app);
 
             await app.RunAsync().ConfigureAwait(false);
         }

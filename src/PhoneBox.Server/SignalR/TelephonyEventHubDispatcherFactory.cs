@@ -4,38 +4,37 @@ using PhoneBox.Abstractions;
 
 namespace PhoneBox.Server.SignalR
 {
-    internal sealed class TelephonyHubPublisher : ITelephonyHubPublisher
+    internal sealed class TelephonyEventHubDispatcherFactory : ITelephonyEventDispatcherFactory
     {
         private readonly IHubContext<TelephonyHub, ITelephonyHub> _hub;
 
-        public TelephonyHubPublisher(IHubContext<TelephonyHub, ITelephonyHub> hub)
+        public TelephonyEventHubDispatcherFactory(IHubContext<TelephonyHub, ITelephonyHub> hub)
         {
             _hub = hub;
         }
 
-        ITelephonySubscriptionHubPublisher ITelephonyHubPublisher.RetrieveSubscriptionHubPublisher(CallSubscriber subscriber)
+        ITelephonyEventDispatcher ITelephonyEventDispatcherFactory.Create(CallSubscriber subscriber)
         {
-            return new SubscriptionPublisher(_hub, subscriber.PhoneNumber);
+            return new TelephonyEventHubDispatcher(_hub, subscriber.PhoneNumber);
         }
 
-
-        private sealed class SubscriptionPublisher : ITelephonySubscriptionHubPublisher
+        private sealed class TelephonyEventHubDispatcher : ITelephonyEventDispatcher
         {
             private readonly IHubContext<TelephonyHub, ITelephonyHub> _hub;
             private readonly string _userid;
 
-            public SubscriptionPublisher(IHubContext<TelephonyHub, ITelephonyHub> hub, string userid)
+            public TelephonyEventHubDispatcher(IHubContext<TelephonyHub, ITelephonyHub> hub, string userid)
             {
                 _hub = hub;
                 _userid = userid;
             }
 
-            async Task ITelephonySubscriptionHubPublisher.OnCallNotification(CallNotificationEvent call)
+            async Task ITelephonyEventDispatcher.OnCallNotification(CallNotificationEvent call)
             {
                 await _hub.Clients.User(_userid).ReceiveCallNotification(call).ConfigureAwait(false);
             }
 
-            async Task ITelephonySubscriptionHubPublisher.OnCallState(CallStateEvent call)
+            async Task ITelephonyEventDispatcher.OnCallState(CallStateEvent call)
             {
                 await _hub.Clients.User(_userid).ReceiveCallState(call).ConfigureAwait(false);
             }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,11 +16,11 @@ namespace PhoneBox.Server
     {
         private static readonly IDictionary<TelephonyProvider, Type> Map = new Dictionary<TelephonyProvider, Type>
         {
-            [TelephonyProvider.WebHook] = typeof(WebHookConnector)
-          , [TelephonyProvider.Tapi] = typeof(TapiConnector)
+            [TelephonyProvider.WebHook] = typeof(WebHookConnectorRegistrar)
+          , [TelephonyProvider.Tapi] = typeof(TapiConnectorRegistrar)
         };
 
-        public static void RegisterProvider(WebApplicationBuilder builder, IServiceCollection services)
+        public static void RegisterProvider(WebApplicationBuilder builder)
         {
             TelephonyOptions configuration = GetConfiguration(builder.Configuration);
             if (configuration.Provider == TelephonyProvider.None)
@@ -27,27 +28,37 @@ namespace PhoneBox.Server
                 throw new InvalidOperationException($"No telephony provider supported. Please set the Telephony.Provider property in appsettings.json. Possible values are: {String.Join(", ", Map.Keys)}");
             }
 
-            Type connectorType = GetConnectorType(configuration.Provider);
+            Type connectorFactoryType = GetConnectorType(configuration.Provider);
+            Type connectorFactoryInterfaceType = typeof(ITelephonyConnectorRegistrar);
+
+            VerifyInterfacesImplemented(connectorFactoryType, connectorFactoryInterfaceType);
+
+            ConstructorInfo? defaultCtor = connectorFactoryType.GetConstructor(Type.EmptyTypes);
+            if (defaultCtor == null)
+                throw new InvalidOperationException($"Telephony provider type does not defined a parameterless constructor: {connectorFactoryType}");
+
+            ITelephonyConnectorRegistrar registrar = (ITelephonyConnectorRegistrar)Activator.CreateInstance(connectorFactoryType)!;
+            registrar.ConfigureServices(builder.Services);
+            builder.Services.AddSingleton(registrar);
+
+            Type connectorType = registrar.ImplementationType;
             Type hostedServiceInterfaceType = typeof(IHostedService);
             Type telephonyConnectorInterfaceType = typeof(ITelephonyConnector);
             
             VerifyInterfacesImplemented(connectorType, telephonyConnectorInterfaceType/*, hostedServiceInterfaceType*/);
 
-            services.AddSingleton(connectorType);
-            services.AddSingleton(telephonyConnectorInterfaceType, x => x.GetRequiredService(connectorType));
+            builder.Services.AddSingleton(connectorType);
+            builder.Services.AddSingleton(telephonyConnectorInterfaceType, x => x.GetRequiredService(connectorType));
 
             if (hostedServiceInterfaceType.IsAssignableFrom(connectorType))
-                services.AddSingleton(hostedServiceInterfaceType, x => x.GetRequiredService(connectorType));
+                builder.Services.AddSingleton(hostedServiceInterfaceType, x => x.GetRequiredService(connectorType));
         }
 
-        public static void SetupProvider(WebApplication application)
+        public static void ConfigureProvider(WebApplication application)
         {
             TelephonyOptions configuration = GetConfiguration(application.Configuration);
             application.Logger.LogInformation("Configured telephony connector: {provider}", configuration.Provider);
-            if (application.Services.GetRequiredService(typeof(ITelephonyConnector)) is not ITelephonyConnectorSetup setup) 
-                return;
-
-            setup.Setup(application);
+            application.Services.GetRequiredService<ITelephonyConnectorRegistrar>().ConfigureApplication(application);
         }
 
         private static Type GetConnectorType(TelephonyProvider provider)

@@ -10,14 +10,14 @@ namespace PhoneBox.TapiService
 {
     public sealed class TapiConnector : IHostedService, ITelephonyConnector
     {
-        private readonly ITelephonyHubPublisher _hubPublisher;
+        private readonly ITelephonyEventDispatcherFactory _eventDispatcherFactory;
         private readonly TapiEventNotificationSink _callNotification;
 
         private TAPIClass? _tapiClient;
 
-        public TapiConnector(ITelephonyHubPublisher hubPublisher)
+        public TapiConnector(ITelephonyEventDispatcherFactory eventDispatcherFactory)
         {
-            _hubPublisher = hubPublisher;
+            _eventDispatcherFactory = eventDispatcherFactory;
             _callNotification = new TapiEventNotificationSink();
         }
 
@@ -45,7 +45,7 @@ namespace PhoneBox.TapiService
             return Task.CompletedTask;
         }
 
-        void ITelephonyConnector.Register(CallSubscriber subscriber)
+        void ITelephonyConnector.Subscribe(CallSubscriber subscriber)
         {
             ITAddress? tapiAddress = FindTapiAddressForSubscriber(subscriber);
             if (tapiAddress == null)
@@ -56,8 +56,8 @@ namespace PhoneBox.TapiService
             {
                 _tapiClient!.RegisterCallNotifications(tapiAddress, fMonitor: true, fOwner: true, lMediaTypes: TapiConstants.TAPIMEDIATYPE_AUDIO, lCallbackInstance: 0);
 
-                ITelephonySubscriptionHubPublisher subscriptionPublisher = _hubPublisher.RetrieveSubscriptionHubPublisher(subscriber);
-                _callNotification.AddAddressRegistration(tapiAddress, subscriber, subscriptionPublisher);
+                ITelephonyEventDispatcher eventDispatcher = _eventDispatcherFactory.Create(subscriber);
+                _callNotification.AddAddressRegistration(tapiAddress, subscriber, eventDispatcher);
             }
 
         }
@@ -96,9 +96,9 @@ namespace PhoneBox.TapiService
                 _registrations = new SortedDictionary<string, TapiAddressSubscription>();
             }
 
-            public void AddAddressRegistration(ITAddress address, CallSubscriber subscriber, ITelephonySubscriptionHubPublisher subscriptionPublisher)
+            public void AddAddressRegistration(ITAddress address, CallSubscriber subscriber, ITelephonyEventDispatcher eventDispatcher)
             {
-                var addressRegistration = new TapiAddressSubscription(address, subscriber, subscriptionPublisher);
+                var addressRegistration = new TapiAddressSubscription(address, subscriber, eventDispatcher);
                 _registrations.Add(address.AddressName, addressRegistration);
             }
 
@@ -153,13 +153,13 @@ namespace PhoneBox.TapiService
         {
             public string AddressName { get; }
             public CallSubscriber Subscriber { get; }
-            public ITelephonySubscriptionHubPublisher Publisher { get; }
+            public ITelephonyEventDispatcher Publisher { get; }
 
-            public TapiAddressSubscription(ITAddress address, CallSubscriber subscriber, ITelephonySubscriptionHubPublisher subscriptionPublisher)
+            public TapiAddressSubscription(ITAddress address, CallSubscriber subscriber, ITelephonyEventDispatcher publisher)
             {
                 AddressName = address.AddressName;
                 Subscriber = subscriber;
-                Publisher = subscriptionPublisher;
+                Publisher = publisher;
             }
         }
     }

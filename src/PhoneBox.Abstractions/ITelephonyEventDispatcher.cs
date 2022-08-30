@@ -2,7 +2,7 @@
 
 namespace PhoneBox.Abstractions
 {
-    public interface ITelephonySubscriptionHubPublisher
+    public interface ITelephonyEventDispatcher
     {
         Task OnCallNotification(CallNotificationEvent call);
         Task OnCallState(CallStateEvent call);
