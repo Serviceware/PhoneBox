@@ -64,23 +64,26 @@ namespace PhoneBox.Generators
                 }
             }
 
-            foreach (IGrouping<string, OpenApiHubMethod> hub in CollectHubMethods(container).GroupBy(x => x.HubName))
+            var hubGroups = CollectHubMethods(container).GroupBy(x => x.Hub).ToArray();
+            foreach (IGrouping<OpenApiHub, OpenApiHubMethod> hubGroup in hubGroups)
             {
-                string hubName = NormalizeHubName(hub.Key);
+                string hubName = NormalizeHubName(hubGroup.Key.Name);
                 string interfaceName = $"I{hubName}Hub";
+                string className = $"{hubName}Hub";
 
                 if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Interface))
-                    AddInterface(context, interfaceName, @namespace, hub);
+                    AddInterface(context, interfaceName, @namespace, hubGroup);
 
                 if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Implementation))
-                    AddImplementation(context, interfaceName, hubName, @namespace, contractNamespace, hub);
+                    AddImplementation(context, className, interfaceName, @namespace, contractNamespace, hubGroup);
             }
+
+            if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Implementation))
+                AddExtensions(context, @namespace, hubGroups.Select(x => x.Key));
         }
 
-        private static void AddImplementation(SourceProductionContext context, string interfaceName, string hubName, string? @namespace, string? contractNamespace, IEnumerable<OpenApiHubMethod> methods)
+        private static void AddImplementation(SourceProductionContext context, string className, string interfaceName, string? @namespace, string? contractNamespace, IEnumerable<OpenApiHubMethod> methods)
         {
-            string className = $"{hubName}Hub";
-
             ICollection<string> usings = new SortedSet<string>();
             usings.Add("Microsoft.AspNetCore.SignalR");
 
@@ -136,6 +139,31 @@ namespace {@namespace}
             context.AddSource($"{model.Name}.generated.cs", content);
         }
 
+        private static void AddExtensions(SourceProductionContext context, string? @namespace, IEnumerable<OpenApiHub> hubs)
+        {
+            ICollection<string> usings = new SortedSet<string>();
+            usings.Add("Microsoft.AspNetCore.Routing");
+
+            if (@namespace != null)
+                usings.Add(@namespace);
+
+            string usingsStr = String.Join(Environment.NewLine, usings.Select(x => $"using {x};"));
+            string methodsStr = String.Join($"{Environment.NewLine}{Environment.NewLine}", hubs.Select(x => @$"        public static HubEndpointConventionBuilder MapHub<THub>(this IEndpointRouteBuilder endpoints) where THub : {x.Name}
+        {{
+            return endpoints.MapHub<THub>(""{x.Path}"");
+        }}"));
+            string content = $@"{usingsStr}
+
+namespace Microsoft.AspNetCore.Builder
+{{
+    internal static class HubEndpointRouteBuilderExtensions
+    {{
+{methodsStr}
+    }}
+}}";
+            context.AddSource("HubEndpointRouteBuilderExtensions.generated.cs", content);
+        }
+
         private static string GenerateInterfaceMethod(OpenApiHubMethod method)
         {
             string parametersStr = String.Join(", ", method.Parameters.Select(x => $"{x.TypeName} {x.ParameterName}"));
@@ -180,7 +208,9 @@ namespace {@namespace}
 
                     string hubName = GetHubName(operation);
                     string methodName = operation.OperationId;
-                    OpenApiHubMethod hubMethod = new OpenApiHubMethod(hubName, methodName);
+                    string hubPath = GetHubPath(path);
+                    OpenApiHub hub = new OpenApiHub(hubName, hubPath);
+                    OpenApiHubMethod hubMethod = new OpenApiHubMethod(hub, methodName);
 
                     OpenApiSchema? bodySchema = operation.RequestBody?.Content.FirstOrDefault().Value?.Schema;
                     if (bodySchema != null)
@@ -232,6 +262,17 @@ namespace {@namespace}
         }
 
         private static string GetHubName(OpenApiOperation operation) => operation.Tags.Any() ? operation.Tags[0].Name : "Default";
+
+        private static string GetHubPath(string path)
+        {
+            int pathEndIndex = path.IndexOf('/', 1);
+            if (pathEndIndex > 0)
+            {
+                string rootPath = path.Substring(0, pathEndIndex);
+                return rootPath;
+            }
+            return path;
+        }
 
         private static OpenApiDocumentContainer? LoadYamlFile(AdditionalText item, CancellationToken cancellationToken)
         {
@@ -385,15 +426,27 @@ namespace {@namespace}
             }
         }
 
+        private readonly struct OpenApiHub
+        {
+            public string Name { get; }
+            public string Path { get; }
+
+            public OpenApiHub(string name, string path)
+            {
+                this.Name = name;
+                this.Path = path;
+            }
+        }
+
         private readonly struct OpenApiHubMethod
         {
-            public string HubName { get; }
+            public OpenApiHub Hub { get; }
             public string MethodName { get; }
             public ICollection<OpenApiHubMethodParameter> Parameters { get; }
 
-            public OpenApiHubMethod(string hubName, string methodName)
+            public OpenApiHubMethod(OpenApiHub hub, string methodName)
             {
-                this.HubName = hubName;
+                this.Hub = hub;
                 this.MethodName = methodName;
                 this.Parameters = new Collection<OpenApiHubMethodParameter>();
             }

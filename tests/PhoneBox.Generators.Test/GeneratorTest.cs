@@ -5,6 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using Dibix.Testing;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -47,14 +49,17 @@ namespace PhoneBox.Generators.Tests
               , expectedFiles: new[]
                 {
                     "TelephonyHub.generated.cs"
+                  , "HubEndpointRouteBuilderExtensions.generated.cs"
                 }
               , MetadataReference.CreateFromFile(typeof(Hub).Assembly.Location)
+              , MetadataReference.CreateFromFile(typeof(HubEndpointConventionBuilder).Assembly.Location)
+              , MetadataReference.CreateFromFile(typeof(IEndpointRouteBuilder).Assembly.Location)
               , MetadataReference.CreateFromFile(contractAssemblyFilePath)
             );
 
-            Assert.AreEqual(1, runResult.GeneratedTrees.Length);
-            Assert.AreEqual(1, runResult.Results[0].GeneratedSources.Length);
-            Assert.AreEqual(2, syntaxTrees.Count);
+            Assert.AreEqual(2, runResult.GeneratedTrees.Length);
+            Assert.AreEqual(2, runResult.Results[0].GeneratedSources.Length);
+            Assert.AreEqual(3, syntaxTrees.Count);
         }
 
         private (GeneratorDriverRunResult runResult, IList<SyntaxTree> syntaxTrees, Compilation outputCompilation) CompileContracts() => this.RunGenerator

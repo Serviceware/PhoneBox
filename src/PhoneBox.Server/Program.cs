@@ -63,7 +63,7 @@ namespace PhoneBox.Server
             app.UseAuthorization();
             app.UseCors();
 
-            app.MapHub<TelephonyHub>("/TelephonyHub")
+            app.MapHub<TelephonyHub>()
                .RequireAuthorization("HubConsumer");
 
             TelephonyConnectorRegistrar.ConfigureProvider(app);
