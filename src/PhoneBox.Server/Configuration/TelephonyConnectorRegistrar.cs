@@ -38,7 +38,7 @@ namespace PhoneBox.Server
                 throw new InvalidOperationException($"Telephony provider type does not defined a parameterless constructor: {connectorFactoryType}");
 
             ITelephonyConnectorRegistrar registrar = (ITelephonyConnectorRegistrar)Activator.CreateInstance(connectorFactoryType)!;
-            registrar.ConfigureServices(builder.Services);
+            registrar.ConfigureServices(builder.Services, builder.Configuration);
             builder.Services.AddSingleton(registrar);
 
             Type connectorType = registrar.ImplementationType;

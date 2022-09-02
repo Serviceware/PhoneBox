@@ -25,8 +25,8 @@ namespace PhoneBox.Server
 
             IServiceCollection services = builder.Services;
             services.Configure<AuthorizationOptions>(authorizationConfiguration);
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                    .AddJwtBearer(x =>
+            services.AddAuthentication()
+                    .AddJwtBearer("HubConsumer", x =>
                     {
                         x.Authority = authorizationOptions.Authority;
                         x.TokenValidationParameters.ValidAudience = authorizationOptions.Audience;
@@ -34,7 +34,8 @@ namespace PhoneBox.Server
                     });
             services.AddAuthorization(x =>
             {
-                x.AddPolicy("HubConsumer", y => y.RequireAuthenticatedUser()
+                x.AddPolicy("HubConsumer", y => y.AddAuthenticationSchemes("HubConsumer")
+                                                 .RequireAuthenticatedUser()
                                                  .RequireClaim(authorizationOptions.SubscriberIdClaimType)
                                                  .Build());
             });

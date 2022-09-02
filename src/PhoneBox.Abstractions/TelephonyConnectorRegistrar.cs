@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace PhoneBox.Abstractions
@@ -8,7 +9,7 @@ namespace PhoneBox.Abstractions
     {
         public Type ImplementationType => typeof(TImplementation);
 
-        public abstract void ConfigureServices(IServiceCollection services);
+        public abstract void ConfigureServices(IServiceCollection services, IConfiguration configuration);
         public abstract void ConfigureApplication(WebApplication application);
     }
 }
