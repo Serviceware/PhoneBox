@@ -2,19 +2,14 @@
   
   <PropertyGroup>
     <TargetFrameworks>net6.0</TargetFrameworks>
-    <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
   </PropertyGroup>
   
   <ItemGroup>
     <Compile Remove="Resources\*.cs" />
-    <EmbeddedResource Include="Resources\*" LogicalName="%(EmbeddedResource.Filename)%(EmbeddedResource.Extension)" />
-    <Compile Update="Resource.Designer.cs" DesignTime="True" AutoGen="True" DependentUpon="Resource.resx" />
-    <EmbeddedResource Update="Resource.resx" Generator="ResXFileCodeGenerator" LastGenOutput="Resource.Designer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <EmbeddedResource Include="Resources\*" />
     <Compile Include="..\..\shared\Extensions\EnumerableExtensions.cs" Link="Extensions\EnumerableExtensions.cs" />
     <EmbeddedResource Include="..\..\shared\Schemas\OpenApiSchema.yml" Link="Schemas\OpenApiSchema.yml" />
+    <EmbeddedResource Update="@(EmbeddedResource)" LogicalName="%(EmbeddedResource.Filename)%(EmbeddedResource.Extension)" />
   </ItemGroup>
 
   <ItemGroup>

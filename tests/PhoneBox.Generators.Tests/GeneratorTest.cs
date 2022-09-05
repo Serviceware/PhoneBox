@@ -96,7 +96,7 @@ namespace PhoneBox.Generators.Tests
 
             Mock<AdditionalText> additionalText = new Mock<AdditionalText>(MockBehavior.Strict);
             additionalText.SetupGet(x => x.Path).Returns(".yml");
-            additionalText.Setup(x => x.GetText(It.IsAny<CancellationToken>())).Returns(SourceText.From(Resource.OpenApiSchema));
+            additionalText.Setup(x => x.GetText(It.IsAny<CancellationToken>())).Returns(SourceText.From(base.GetEmbeddedResourceContent("OpenApiSchema.yml")));
 
             Mock<AnalyzerConfigOptions> globalAnalyzerConfigOptions = new Mock<AnalyzerConfigOptions>(MockBehavior.Strict);
             Mock<AnalyzerConfigOptions> fileAnalyzerConfigOptions = new Mock<AnalyzerConfigOptions>(MockBehavior.Strict);
