@@ -44,7 +44,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "azure-pipeline-templates", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Server", "src\PhoneBox.Server\PhoneBox.Server.csproj", "{5AD40A13-FDF9-4A8E-823C-4AED252BAB4F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Server.Test", "tests\PhoneBox.Server.Test\PhoneBox.Server.Test.csproj", "{63FC2FE6-35A1-4759-8C43-DAB86346B4BE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Server.Tests", "tests\PhoneBox.Server.Tests\PhoneBox.Server.Tests.csproj", "{63FC2FE6-35A1-4759-8C43-DAB86346B4BE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Client", "src\PhoneBox.Client\PhoneBox.Client.csproj", "{B509D9D4-8C41-469D-9FB8-E8F90C747D8B}"
 EndProject
@@ -54,7 +54,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Abstractions", "sr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Generators", "src\PhoneBox.Generators\PhoneBox.Generators.csproj", "{C8D7321A-6DD6-45C4-8C50-3F74EB2A6E52}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Generators.Tests", "tests\PhoneBox.Generators.Test\PhoneBox.Generators.Tests.csproj", "{4B0B617C-81CD-4545-ACD4-7799FB0E951D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhoneBox.Generators.Tests", "tests\PhoneBox.Generators.Tests\PhoneBox.Generators.Tests.csproj", "{4B0B617C-81CD-4545-ACD4-7799FB0E951D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

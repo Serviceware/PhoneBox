@@ -26,7 +26,7 @@ steps:
     arguments: install --tool-path $(Agent.TempDirectory) dotnet-reportgenerator-globaltool
 
 - ${{ if eq(parameters.operatingSystem, 'Windows') }}:
-  - template: test-initialize-localdb.yml
+ #- template: test-initialize-localdb.yml
   - template: test-dotnet.yml
     parameters:
       projects:
@@ -34,7 +34,7 @@ steps:
       - PhoneBox.Server.Tests
       configuration: ${{ parameters.configuration }}
       codeCoverageEngine: ${{ parameters.codeCoverageEngine }}
-      arguments: -e Database:ConnectionString="Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=PhoneBox;Integrated Security=True;"
+     #arguments: -e Database:ConnectionString="Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=PhoneBox;Integrated Security=True;"
 - ${{ else }}:
   - template: test-dotnet.yml
     parameters:
