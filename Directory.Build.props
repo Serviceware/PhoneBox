@@ -11,6 +11,7 @@
     <SignAssembly>true</SignAssembly>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
+    <NoDefaultLaunchSettingsFile Condition="'$(IsTestProject)' == 'true'">True</NoDefaultLaunchSettingsFile>
 
     <DebugType>embedded</DebugType>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
