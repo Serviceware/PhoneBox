@@ -78,12 +78,6 @@ namespace PhoneBox.Server
             services.AddSingleton<ITelephonyEventDispatcherFactory, TelephonyEventHubDispatcherFactory>();
             services.AddSingleton<IUserIdProvider, SubscriberIdClaimUserIdProvider>();
 
-            if (isDevelopment)
-            {
-                // Periodically sends messages to the hub for debugging purposes
-                services.AddSingleton<IHostedService, TelephonyHubWorker>();
-            }
-
             TelephonyConnectorRegistrar.RegisterProvider(builder);
 
             WebApplication app = builder.Build();

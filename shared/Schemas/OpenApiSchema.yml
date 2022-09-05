@@ -26,23 +26,6 @@ paths:
           description: Success
       security:
       - openIdConnect: [ ]
-  /TelephonyHub/SendMessage:
-    post:
-      tags:
-        - TelephonyHub
-      operationId: SendMessage
-      parameters:
-        - name: message
-          in: query
-          required: true
-          schema:
-            type: string
-      responses: 
-        '204':
-          description: NoContent
-      security:
-      - openIdConnect: [ ]
-      x-websocket: true
   /TelephonyHub/ReceiveCallNotification:
     post:
       tags:

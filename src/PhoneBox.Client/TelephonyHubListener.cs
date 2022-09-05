@@ -29,7 +29,6 @@ namespace PhoneBox.Client
                                                          .WithAutomaticReconnect()
                                                          .Build();
             this._connection.Closed += OnHubConnectionClosed;
-            _ = this._connection.On<string>(this.SendMessage);
             _ = this._connection.On<CallNotificationEvent>(this.ReceiveCallNotification);
             _ = this._connection.On<CallStateEvent>(this.ReceiveCallState);
 
@@ -81,12 +80,6 @@ namespace PhoneBox.Client
         #endregion
 
         #region ITelephonyHub Members
-        public Task SendMessage(string message)
-        {
-            Console.WriteLine($"Received message: {message}");
-            return Task.CompletedTask;
-        }
-
         public Task ReceiveCallNotification(CallNotificationEvent call)
         {
             Console.WriteLine($"Received call notification: {call.CallerPhoneNumber} {call.CallStateKey} {call.HasCallControl} ==> {call.DebugInfo}");

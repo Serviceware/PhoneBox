@@ -1,18 +1,16 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.SignalR;
 using PhoneBox.Abstractions;
-using PhoneBox.Server.SignalR;
 
 namespace PhoneBox.Server.WebHook
 {
     internal sealed class TelephonyHook : ITelephonyHook
     {
-        private readonly IHubContext<TelephonyHub, ITelephonyHub> _hub;
+        private readonly ITelephonyEventDispatcherFactory _telephonyEventDispatcherFactory;
 
-        public TelephonyHook(IHubContext<TelephonyHub, ITelephonyHub> hub)
+        public TelephonyHook(ITelephonyEventDispatcherFactory telephonyEventDispatcherFactory)
         {
-            this._hub = hub;
+            this._telephonyEventDispatcherFactory = telephonyEventDispatcherFactory;
         }
 
         public Task HandleGet(string fromPhoneNumber, string toPhoneNumber, HttpContext context) => this.HandleWebHookRequest(fromPhoneNumber, toPhoneNumber, context);
@@ -21,8 +19,9 @@ namespace PhoneBox.Server.WebHook
 
         private async Task HandleWebHookRequest(string fromPhoneNumber, string toPhoneNumber, HttpContext context)
         {
-            bool isAuthenticated = context.User.Identity?.IsAuthenticated == true;
-            await this._hub.Clients.User(toPhoneNumber).SendMessage($"Webhook called: {fromPhoneNumber} [Authenticated: {isAuthenticated}]").ConfigureAwait(false);
+            ITelephonyEventDispatcher telephonyEventDispatcher = this._telephonyEventDispatcherFactory.Create(new CallSubscriber(toPhoneNumber));
+            CallNotificationEvent notification = new CallNotificationEvent("WebHook", fromPhoneNumber, callStateKey: null, hasCallControl: false);
+            await telephonyEventDispatcher.OnCallNotification(notification).ConfigureAwait(false);
             context.Response.StatusCode = 200;
             await context.Response.WriteAsync("Thx!").ConfigureAwait(false);
         }
