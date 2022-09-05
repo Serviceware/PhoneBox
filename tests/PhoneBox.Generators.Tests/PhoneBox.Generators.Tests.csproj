@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\shared\Extensions\EnumerableExtensions.cs" Link="Extensions\EnumerableExtensions.cs" />
-    <None Include="..\..\shared\Schemas\OpenApiSchema.yml" Link="Schemas\OpenApiSchema.yml" />
+    <EmbeddedResource Include="..\..\shared\Schemas\OpenApiSchema.yml" Link="Schemas\OpenApiSchema.yml" />
   </ItemGroup>
 
   <ItemGroup>
