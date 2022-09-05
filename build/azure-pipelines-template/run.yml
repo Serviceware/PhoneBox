@@ -31,7 +31,7 @@ steps:
     configuration: ${{ parameters.configuration }}
     codeCoverageEngine: ${{ parameters.codeCoverageEngine }}
 
-- ${{ if eq(parameters.operatingSystem, 'Linux') }}:
-  - template: pack.yml
-    parameters:
-      configuration: ${{ parameters.configuration }}
+#- ${{ if eq(parameters.operatingSystem, 'Linux') }}:
+#  - template: pack.yml
+#    parameters:
+#      configuration: ${{ parameters.configuration }}

@@ -9,7 +9,6 @@ steps:
 - template: pack-dotnet.yml
   parameters:
     projects:
-    - PhoneBox.Server
     configuration: ${{ parameters.configuration }}
 
 - template: publish.yml

@@ -3,11 +3,6 @@ Call me on my tele TAPI.
 
 [![Build Status](https://img.shields.io/azure-devops/build/serviceware/phonebox/4/main)](https://dev.azure.com/serviceware/PhoneBox/_build/latest?definitionId=4&branchName=main) [![Test Status](https://img.shields.io/azure-devops/tests/serviceware/phonebox/4/main)](https://dev.azure.com/serviceware/PhoneBox/_build/latest?definitionId=4&branchName=main) [![Code coverage](https://img.shields.io/azure-devops/coverage/serviceware/phonebox/4/main)](https://dev.azure.com/serviceware/PhoneBox/_build/latest?definitionId=4&branchName=main)
 
-## Packages
-| Package | NuGet |
-| - | - |
-| [PhoneBox.Server](https://www.nuget.org/packages/PhoneBox.Server) | [![PhoneBox.Server](https://img.shields.io/nuget/v/PhoneBox.Server.svg)](https://www.nuget.org/packages/PhoneBox.Server) |
-
 ## Authorization
 Keycloak requirements:
 1. Create client 'phone-box'

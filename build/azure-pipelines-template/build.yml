@@ -9,7 +9,11 @@ steps:
 - template: build-all.yml
   parameters:
     projects:
+    - PhoneBox.Abstractions
+    - PhoneBox.Client
+    - PhoneBox.Generators
     - PhoneBox.Server
+    - PhoneBox.TapiService
     configuration: ${{ parameters.configuration }}
 
 - template: publish.yml

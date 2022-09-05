@@ -31,7 +31,6 @@ steps:
     parameters:
       projects:
       - PhoneBox.Generators.Tests
-      - PhoneBox.Server.Tests
       configuration: ${{ parameters.configuration }}
       codeCoverageEngine: ${{ parameters.codeCoverageEngine }}
      #arguments: -e Database:ConnectionString="Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=PhoneBox;Integrated Security=True;"
@@ -42,7 +41,6 @@ steps:
       - PhoneBox.Generators.Tests
      #  Currently running SQL tests only on Windows, because sqllocaldb is not supported on linux
      #  It might be possible to use a vm with SQL server installed, have to look into it
-      - PhoneBox.Server.Tests
       configuration: ${{ parameters.configuration }}
       codeCoverageEngine: Cobertura # Native (*.coverage) is only supported on Windows
 
