@@ -1,0 +1,37 @@
+﻿parameters:
+- name: projects
+  type: object
+  default: { }
+- name: runtimeIdentifier
+  type: string
+  values:
+  - linux-x64
+  - win-x64
+  - osx-x64
+- name: configuration
+  type: string
+  values:
+  - Debug
+  - Release
+ 
+steps:
+- ${{ each project in parameters.projects }}:
+  - task: DotNetCoreCLI@2
+    displayName: 🌐 Publish ${{ project }} (${{ parameters.configuration }})
+    inputs:
+      command: publish
+      projects: src/${{ project }}
+      publishWebProjects: false
+      arguments: >
+        --configuration ${{ parameters.configuration }}
+        --no-build
+        --output $(Build.ArtifactStagingDirectory)/publish
+        --runtime ${{ parameters.runtimeIdentifier }}
+        --self-contained
+        -p:PublishSingleFile=True
+        -p:PublishReadToRun=True
+       #-p:PublishTrimmed=True
+       #-p:TreatWarningsAsErrors=False
+  
+  - pwsh: Rename-Item -Path $(Build.ArtifactStagingDirectory)/publish/src.zip -NewName $(Build.ArtifactStagingDirectory)/publish/${{ project }}.${{ parameters.runtimeIdentifier }}.zip
+    displayName: 🎨 Rename src.zip -> ${{ project }}.${{ parameters.runtimeIdentifier }}.zip

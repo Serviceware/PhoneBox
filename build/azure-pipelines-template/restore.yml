@@ -1,6 +1,16 @@
-﻿steps:
+﻿parameters:
+- name: runtimeIdentifier
+  type: string
+  values:
+  - linux-x64
+  - win-x64
+  - osx-x64
+ 
+steps:
 - task: DotNetCoreCLI@2
   displayName: 📦 Restore NuGet packages
   inputs:
     command: restore
     verbosityRestore: minimal
+    restoreArguments: >
+      --runtime ${{ parameters.runtimeIdentifier }}

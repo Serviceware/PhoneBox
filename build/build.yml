@@ -1,4 +1,4 @@
-parameters:
+﻿parameters:
 - name: buildConfiguration
   displayName: Build configuration
   type: string
@@ -28,6 +28,7 @@ stages:
     - template: azure-pipelines-template/run.yml
       parameters:
         operatingSystem: Linux
+        runtimeIdentifier: linux-x64
         configuration: ${{ parameters.buildConfiguration }}
         codeCoverageEngine: ${{ variables.codeCoverageEngine }}
   
@@ -38,6 +39,7 @@ stages:
     - template: azure-pipelines-template/run.yml
       parameters:
         operatingSystem: macOS
+        runtimeIdentifier: osx-x64
         configuration: ${{ parameters.buildConfiguration }}
         codeCoverageEngine: ${{ variables.codeCoverageEngine }}
   
@@ -48,11 +50,11 @@ stages:
     - template: azure-pipelines-template/run.yml
       parameters:
         operatingSystem: Windows
+        runtimeIdentifier: win-x64
         configuration: ${{ parameters.buildConfiguration }}
         codeCoverageEngine: ${{ variables.codeCoverageEngine }}
 
 - stage: Finalize
-  condition: succeededOrFailed()
   jobs:
   - job: Windows
     pool:
@@ -65,3 +67,19 @@ stages:
     - template: azure-pipelines-template/publish-coverage.yml
       parameters:
         codeCoverageEngine: ${{ variables.codeCoverageEngine }}
+
+  # Execution of tests has continueOnError: true to ensure we publish test results/coverage for failed tests.
+  # This will make the pipeline partially succeed.
+  # Unfortunately, this will still trigger a release, because pipeline triggers only evaluate failed as non successful.
+  # To ensure the build is failed, we throw after all steps have executed.
+- stage: Evaluate
+  condition: eq(dependencies.Run.result, 'SucceededWithIssues')
+  jobs:
+  - job: Linux
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - script: |
+        echo '##[error]Failing build, that has partially succeeded. A previous task has failed'
+        exit 1
+      displayName: 💂 Fail build if partially succeeded

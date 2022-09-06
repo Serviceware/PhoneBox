@@ -1,12 +1,14 @@
 <Project>
   <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.1" />
 
-  <PropertyGroup>
-    <DefaultItemExcludes Condition="'$(IsTestProject)' == 'true'">$(DefaultItemExcludes);TestResults\**</DefaultItemExcludes>
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <DefaultItemExcludes>$(DefaultItemExcludes);TestResults\**</DefaultItemExcludes>
+    <NoDefaultLaunchSettingsFile>True</NoDefaultLaunchSettingsFile>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="*.dotsettings" />
+    <Content Update="appsettings.*.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
   <Target Name="PrepareNuspec" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">

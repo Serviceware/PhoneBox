@@ -5,6 +5,12 @@
   - Linux
   - macOS
   - Windows
+- name: runtimeIdentifier
+  type: string
+  values:
+  - linux-x64
+  - win-x64
+  - osx-x64
 - name: configuration
   type: string
   values:
@@ -20,9 +26,12 @@ steps:
 - template: install-dotnet-sdk.yml
 
 - template: restore.yml
+  parameters:
+    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
 
 - template: build.yml
   parameters:
+    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     configuration: ${{ parameters.configuration }}
 
 - template: test.yml
@@ -35,3 +44,8 @@ steps:
 #  - template: pack.yml
 #    parameters:
 #      configuration: ${{ parameters.configuration }}
+
+- template: publish.yml
+  parameters:
+    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
+    configuration: ${{ parameters.configuration }}

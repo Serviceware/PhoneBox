@@ -1,6 +1,12 @@
 ﻿parameters:
 - name: project
   type: string
+- name: runtimeIdentifier
+  type: string
+  values:
+  - linux-x64
+  - win-x64
+  - osx-x64
 - name: configuration
   type: string
   values:
@@ -16,4 +22,7 @@ steps:
     arguments: >
       --configuration ${{ parameters.configuration }}
       --no-restore
-      /bl:$(Build.ArtifactStagingDirectory)/build/logs/${{ parameters.configuration }}/${{ parameters.project }}.binlog
+      --runtime ${{ parameters.runtimeIdentifier }}
+      --self-contained
+      -p:PublishSingleFile=True
+      -bl:$(Build.ArtifactStagingDirectory)/build/logs/${{ parameters.configuration }}/${{ parameters.project }}.binlog

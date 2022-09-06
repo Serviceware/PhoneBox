@@ -22,9 +22,23 @@ jobs:
       Write-Host "##vso[task.setvariable variable=IsPreRelease]$('$(resources.pipeline.CI.runName)'.Contains('-'))"
       Write-Host "##vso[task.setvariable variable=IsPreview]$('$(resources.pipeline.CI.runName)'.Contains('+'))"
     displayName: 🖌️ Update pipeline instance name
+
   - download: CI
-    artifact: NuGet packages
-    displayName: 📬 Download 'NuGet packages' artifact
+    artifact: Publish output (Linux)
+    displayName: 📬 Download 'Publish output (Linux)' artifact
+
+  - download: CI
+    artifact: Publish output (Windows)
+    displayName: 📬 Download 'Publish output (Windows)' artifact
+
+  - download: CI
+    artifact: Publish output (macOS)
+    displayName: 📬 Download 'Publish output (macOS)' artifact
+
+ #- download: CI
+ #  artifact: NuGet packages
+ #  displayName: 📬 Download 'NuGet packages' artifact
+
   - task: GitHubRelease@1
     displayName: 📝 Create GitHub release
     inputs:
@@ -36,7 +50,9 @@ jobs:
       title: v$(resources.pipeline.CI.runName)
       isDraft: true # After running this step, visit the new draft release, edit, and publish.
       isPreRelease: $(IsPreRelease)
-      assets: $(Pipeline.Workspace)/CI/NuGet packages/*.nupkg
+      assets: |
+        $(Pipeline.Workspace)/CI/NuGet packages/*.nupkg
+        $(Pipeline.Workspace)/CI/Publish output*/*.zip
       changeLogCompareToRelease: lastNonDraftRelease
       changeLogType: commitBased
       changeLogLabels: |
@@ -45,10 +61,11 @@ jobs:
           { "label" : "enhancement", "displayName": "Enhancements", "state" : "closed" }
         ]
     condition: and(succeeded(), eq(variables['IsPreview'], 'False'))
-  - task: NuGetCommand@2
-    displayName: 🚀 Publish packages
-    inputs:
-      command: push
-      packagesToPush: "$(Pipeline.Workspace)/CI/NuGet packages/*.nupkg"
-      nuGetFeedType: external
-      publishFeedCredentials: NuGet.org
+
+ #- task: NuGetCommand@2
+ #  displayName: 🚀 Publish packages
+ #  inputs:
+ #    command: push
+ #    packagesToPush: "$(Pipeline.Workspace)/CI/NuGet packages/*.nupkg"
+ #    nuGetFeedType: external
+ #    publishFeedCredentials: NuGet.org
