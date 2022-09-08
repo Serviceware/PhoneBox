@@ -11,7 +11,7 @@ steps:
     projects:
     configuration: ${{ parameters.configuration }}
 
-- template: publish.yml
+- template: publish-artifact.yml
   parameters:
     artifact: NuGet packages
     folder: packages

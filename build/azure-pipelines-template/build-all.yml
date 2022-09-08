@@ -6,13 +6,15 @@
   type: string
   values:
   - linux-x64
-  - win-x64
   - osx-x64
+  - win-x64
 - name: configuration
   type: string
   values:
   - Debug
   - Release
+- name: publishSingleFile
+  type: boolean
 
 steps:
 - ${{ each project in parameters.projects }}:
@@ -29,3 +31,4 @@ steps:
       project: ${{ project }}
       runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
       configuration: ${{ parameters.configuration }}
+      publishSingleFile: ${{ parameters.publishSingleFile }}

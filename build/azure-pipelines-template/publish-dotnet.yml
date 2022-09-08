@@ -6,13 +6,17 @@
   type: string
   values:
   - linux-x64
-  - win-x64
   - osx-x64
+  - win-x64
 - name: configuration
   type: string
   values:
   - Debug
   - Release
+- name: publishSingleFile
+  type: boolean
+- name: publishReadyToRun
+  type: boolean
  
 steps:
 - ${{ each project in parameters.projects }}:
@@ -25,13 +29,17 @@ steps:
       arguments: >
         --configuration ${{ parameters.configuration }}
         --no-build
+        --no-restore
         --output $(Build.ArtifactStagingDirectory)/publish
         --runtime ${{ parameters.runtimeIdentifier }}
         --self-contained
-        -p:PublishSingleFile=True
-        -p:PublishReadToRun=True
-       #-p:PublishTrimmed=True
-       #-p:TreatWarningsAsErrors=False
+        --p:IgnoreProjectGuid=True
+        --p:PublishReadyToRun=${{ parameters.publishReadyToRun }}
+        --p:PublishSingleFile=${{ parameters.publishSingleFile }}
+
+       # Currently causing some IL2026 errors (..which has 'RequiresUnreferencedCodeAttribute' can break functionality when trimming application code)
+       #--p:PublishTrimmed=True
+       #--p:NoWarn=1144
   
   - pwsh: Rename-Item -Path $(Build.ArtifactStagingDirectory)/publish/src.zip -NewName $(Build.ArtifactStagingDirectory)/publish/${{ project }}.${{ parameters.runtimeIdentifier }}.zip
     displayName: 🎨 Rename src.zip -> ${{ project }}.${{ parameters.runtimeIdentifier }}.zip

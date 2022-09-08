@@ -9,8 +9,8 @@
   type: string
   values:
   - linux-x64
-  - win-x64
   - osx-x64
+  - win-x64
 - name: configuration
   type: string
   values:
@@ -21,6 +21,12 @@
   values:
   - Native
   - Cobertura
+- name: publishSingleFile
+  type: boolean
+  default: true
+- name: publishReadyToRun
+  type: boolean
+  default: true
 
 steps:
 - template: install-dotnet-sdk.yml
@@ -28,11 +34,13 @@ steps:
 - template: restore.yml
   parameters:
     runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
+    publishReadyToRun: ${{ parameters.publishReadyToRun }}
 
 - template: build.yml
   parameters:
     runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     configuration: ${{ parameters.configuration }}
+    publishSingleFile: ${{ parameters.publishSingleFile }}
 
 - template: test.yml
   parameters:
@@ -49,3 +57,5 @@ steps:
   parameters:
     runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     configuration: ${{ parameters.configuration }}
+    publishSingleFile: ${{ parameters.publishSingleFile }}
+    publishReadyToRun: ${{ parameters.publishReadyToRun }}

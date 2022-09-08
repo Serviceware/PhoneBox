@@ -3,8 +3,10 @@
   type: string
   values:
   - linux-x64
-  - win-x64
   - osx-x64
+  - win-x64
+- name: publishReadyToRun
+  type: boolean
  
 steps:
 - task: DotNetCoreCLI@2
@@ -14,3 +16,7 @@ steps:
     verbosityRestore: minimal
     restoreArguments: >
       --runtime ${{ parameters.runtimeIdentifier }}
+      --p:PublishReadyToRun=${{ parameters.publishReadyToRun }}
+
+    # Workarounds:
+    # --p:PublishReadyToRun => https://github.com/dotnet/runtime/issues/62219

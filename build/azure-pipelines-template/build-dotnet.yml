@@ -5,13 +5,15 @@
   type: string
   values:
   - linux-x64
-  - win-x64
   - osx-x64
+  - win-x64
 - name: configuration
   type: string
   values:
   - Debug
   - Release
+- name: publishSingleFile
+  type: boolean
  
 steps:
 - task: DotNetCoreCLI@2
@@ -24,5 +26,8 @@ steps:
       --no-restore
       --runtime ${{ parameters.runtimeIdentifier }}
       --self-contained
-      -p:PublishSingleFile=True
-      -bl:$(Build.ArtifactStagingDirectory)/build/logs/${{ parameters.configuration }}/${{ parameters.project }}.binlog
+      --bl:$(Build.ArtifactStagingDirectory)/build/logs/${{ parameters.configuration }}/${{ parameters.project }}.binlog
+      --p:PublishSingleFile=${{ parameters.publishSingleFile }}
+    
+    # Workarounds
+    # --p:PublishSingleFile => https://github.com/dotnet/sdk/issues/17526
