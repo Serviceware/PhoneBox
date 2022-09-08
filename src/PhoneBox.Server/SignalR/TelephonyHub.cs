@@ -16,12 +16,9 @@ namespace PhoneBox.Server.SignalR
 
         public override Task OnConnectedAsync()
         {
-            string? userid = Context.UserIdentifier;
-            //Claim? phoneNumberClaim = base.Context.User?.Claims.FirstOrDefault(x => x.Type == ClaimTypes.HomePhone);
-            string phoneNumber = "101";
-            ///base.Context.Items["MyPhoneNo"] = phoneNumber;
-            _connector.Subscribe(new CallSubscriber(phoneNumber));
-            Console.WriteLine("Client connected:" + userid);
+            string userid = Context.UserIdentifier!;
+            _connector.Subscribe(new CallSubscriber(userid));
+            Console.WriteLine($"Client connected: {userid}");
             return Task.CompletedTask;
         }
     }
