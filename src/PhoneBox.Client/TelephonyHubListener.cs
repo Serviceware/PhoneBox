@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using PhoneBox.Abstractions;
 
 namespace PhoneBox.Client
@@ -10,17 +11,19 @@ namespace PhoneBox.Client
     internal sealed class TelephonyHubListener : IHostedService, ITelephonyHub
     {
         private readonly IAccessTokenProvider _accessTokenProvider;
+        private readonly ILogger<TelephonyHubListener> _logger;
         private HubConnection? _connection;
 
-        public TelephonyHubListener(IAccessTokenProvider accessTokenProvider)
+        public TelephonyHubListener(IAccessTokenProvider accessTokenProvider, ILogger<TelephonyHubListener> logger)
         {
             this._accessTokenProvider = accessTokenProvider;
+            this._logger = logger;
         }
 
         #region IHostedService Members
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            Console.WriteLine("Starting listener");
+            this._logger.LogInformation("Starting listener");
 
             this._connection = new HubConnectionBuilder().WithUrl("https://localhost:63440/TelephonyHub", x =>
                                                          {
@@ -28,7 +31,7 @@ namespace PhoneBox.Client
                                                          })
                                                          .WithAutomaticReconnect()
                                                          .Build();
-            this._connection.Closed += OnHubConnectionClosed;
+            this._connection.Closed += this.OnHubConnectionClosed;
             _ = this._connection.On<CallNotificationEvent>(this.ReceiveCallNotification);
             _ = this._connection.On<CallStateEvent>(this.ReceiveCallState);
 
@@ -42,38 +45,27 @@ namespace PhoneBox.Client
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    this._logger.LogError(e, message: null);
                     if (++retries == 5)
                         throw;
                 }
             }
 
-            Console.WriteLine("Listener started");
+            this._logger.LogInformation("Listener started");
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            Console.WriteLine("Stopping listener");
+            this._logger.LogInformation("Stopping listener");
             await (this._connection?.DisposeAsync() ?? ValueTask.CompletedTask).ConfigureAwait(false);
-            Console.WriteLine("Listener stopped");
+            this._logger.LogInformation("Listener stopped");
         }
 
-        private static Task OnHubConnectionClosed(Exception? exception)
+        private Task OnHubConnectionClosed(Exception? exception)
         {
-            Console.WriteLine("Hub connection closed");
-            if (exception != null)
-            {
-                try
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine(exception);
-                }
-                finally
-                {
-                    Console.ResetColor();
-
-                }
-            }
+            this._logger.LogInformation("Hub connection closed");
+            if (exception != null) 
+                this._logger.LogError(exception, message: null);
 
             return Task.CompletedTask;
         }
@@ -82,13 +74,13 @@ namespace PhoneBox.Client
         #region ITelephonyHub Members
         public Task ReceiveCallNotification(CallNotificationEvent call)
         {
-            Console.WriteLine($"Received call notification: {call.CallerPhoneNumber} {call.CallStateKey} {call.HasCallControl} ==> {call.DebugInfo}");
+            this._logger.LogInformation("Received call notification: {CallerPhoneNumber} {CallStateKey} {ca.HasCallControl} ==> {DebugInfo}", call.CallerPhoneNumber, call.CallStateKey, call.HasCallControl, call.DebugInfo);
             return Task.CompletedTask;
         }
 
         public Task ReceiveCallState(CallStateEvent call)
         {
-            Console.WriteLine($"Received call state: {call.DebugInfo}");
+            this._logger.LogInformation("Received call state: {DebugInfo}", call.DebugInfo);
             return Task.CompletedTask;
         }
         #endregion

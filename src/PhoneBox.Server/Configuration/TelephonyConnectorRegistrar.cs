@@ -57,7 +57,7 @@ namespace PhoneBox.Server
         public static void ConfigureProvider(WebApplication application)
         {
             TelephonyOptions configuration = GetConfiguration(application.Configuration);
-            application.Logger.LogInformation("Configured telephony connector: {provider}", configuration.Provider);
+            application.Logger.LogInformation("Configured telephony connector: {Provider}", configuration.Provider);
             application.Services.GetRequiredService<ITelephonyConnectorRegistrar>().ConfigureApplication(application);
         }
 

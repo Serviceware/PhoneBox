@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using PhoneBox.Abstractions;
 using TAPI3Lib;
 
@@ -11,13 +12,15 @@ namespace PhoneBox.TapiService
     public sealed class TapiConnector : IHostedService, ITelephonyConnector
     {
         private readonly ITelephonyEventDispatcherFactory _eventDispatcherFactory;
+        private readonly ILogger<TapiConnector> _logger;
         private readonly TapiEventNotificationSink _callNotification;
 
         private TAPIClass? _tapiClient;
 
-        public TapiConnector(ITelephonyEventDispatcherFactory eventDispatcherFactory)
+        public TapiConnector(ITelephonyEventDispatcherFactory eventDispatcherFactory, ILogger<TapiConnector> logger)
         {
             _eventDispatcherFactory = eventDispatcherFactory;
+            this._logger = logger;
             _callNotification = new TapiEventNotificationSink();
         }
 
@@ -71,10 +74,11 @@ namespace PhoneBox.TapiService
                 addresses.Next(1, out ITAddress address, ref fetched);
                 if (fetched == 1 && address != null)
                 {
-                    Console.WriteLine("address:" + address.GetType().FullName);
-                    Console.WriteLine("  address.ServiceProviderName:" + address.ServiceProviderName);
-                    Console.WriteLine("    address.AddressName:" + address.AddressName);
-                    Console.WriteLine("    address.DialableAddress:" + address.DialableAddress);
+                    string addressType = address.GetType().FullName!;
+                    _logger.LogTrace(@"AddressType: {AddressType}
+ServiceProviderName: {ServiceProviderName}
+AddressName: {AddressName}
+DialableAddress: {DialableAddress}", addressType, address.ServiceProviderName, address.AddressName, address.DialableAddress);
                     if (string.Equals(subscriber.PhoneNumber, address.AddressName, StringComparison.OrdinalIgnoreCase)
                      || string.Equals(subscriber.PhoneNumber, address.DialableAddress, StringComparison.OrdinalIgnoreCase)
                         )
