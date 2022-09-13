@@ -83,6 +83,16 @@ namespace PhoneBox.Client
             this._logger.LogInformation("Received call state: {DebugInfo}", call.DebugInfo);
             return Task.CompletedTask;
         }
+        public Task ReceiveCallConnected(CallConnectedEvent call)
+        {
+            this._logger.LogInformation("Received call connected. PhoneNumber:{PhoneNumber}", call.PhoneNumber);
+            return Task.CompletedTask;
+        }
+        public Task ReceiveCallDisconnected(CallDisconnectedEvent call)
+        {
+            this._logger.LogInformation("Received call disconnected.");
+            return Task.CompletedTask;
+        }
         #endregion
     }
 }

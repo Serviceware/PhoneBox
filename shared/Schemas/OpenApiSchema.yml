@@ -60,6 +60,40 @@ paths:
       security:
       - openIdConnect: [ ]
       x-websocket: true
+  /TelephonyHub/ReceiveCallConnected:
+    post:
+      tags:
+        - TelephonyHub
+      operationId: ReceiveCallConnected
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallConnectedEvent'
+        required: true
+      responses: 
+        '204':
+          description: NoContent
+      security:
+      - openIdConnect: [ ]
+      x-websocket: true
+  /TelephonyHub/ReceiveCallDisconnected:
+    post:
+      tags:
+        - TelephonyHub
+      operationId: ReceiveCallDisconnected
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallDisconnectedEvent'
+        required: true
+      responses: 
+        '204':
+          description: NoContent
+      security:
+      - openIdConnect: [ ]
+      x-websocket: true
 components:
   schemas:
     CallNotificationEvent:
@@ -89,7 +123,33 @@ components:
           type: string
         DebugInfo:
           type: string
+        CallStateType:
+          $ref: '#/components/schemas/CallStateType'
       additionalProperties: false
+    CallStateType:
+      enum:
+        - 0
+        - 2
+        - 3
+      type: integer
+      description: ddd
+      format: int32
+      x-enum-varnames:
+        - CallStateUnknown
+        - CallStateConnected
+        - CallStateDisconnected
+    CallConnectedEvent:
+      required:
+        - PhoneNumber
+      type: object
+      properties:
+        PhoneNumber:
+          type: string
+      additionalProperties: false
+    CallDisconnectedEvent:
+      type: object
+      additionalProperties: false
+
   securitySchemes:
     openIdConnect:
       type: openIdConnect

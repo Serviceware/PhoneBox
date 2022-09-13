@@ -38,6 +38,14 @@ namespace PhoneBox.Server.SignalR
             {
                 await _hub.Clients.User(_userid).ReceiveCallState(call).ConfigureAwait(false);
             }
+            async Task ITelephonyEventDispatcher.OnCallConnected(CallConnectedEvent call)
+            {
+                await _hub.Clients.User(_userid).ReceiveCallConnected(call).ConfigureAwait(false);
+            }
+            async Task ITelephonyEventDispatcher.OnCallDisconnected(PhoneBox.Abstractions.CallDisconnectedEvent call)
+            {
+                await _hub.Clients.User(_userid).ReceiveCallDisconnected(call).ConfigureAwait(false);
+            }
         }
     }
 }

@@ -126,9 +126,20 @@ DialableAddress: {DialableAddress}", addressType, address.ServiceProviderName, a
                 if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription? registration))
                     return;
 
+                PhoneBox.Abstractions.CallStateType stateEnum = new CallStateType();
+
                 string phoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
                 string debugInfo = CallInfoAsText(tapiEvent, call);
-                await registration.Publisher.OnCallState(new CallStateEvent(phoneNumber, debugInfo)).ConfigureAwait(false);
+                await registration.Publisher.OnCallState(new CallStateEvent(phoneNumber, debugInfo, stateEnum)).ConfigureAwait(false);
+
+                if (call.CallState == CALL_STATE.CS_CONNECTED)
+                {
+                    await registration.Publisher.OnCallConnected(new CallConnectedEvent(phoneNumber)).ConfigureAwait(false);
+                }
+                else if (call.CallState == CALL_STATE.CS_DISCONNECTED)
+                {
+                    await registration.Publisher.OnCallDisconnected(new CallDisconnectedEvent()).ConfigureAwait(false);
+                }
             }
 
             private async Task PublishCallNotificationEvent(TAPI_EVENT tapiEvent, ITCallNotificationEvent notificationEvent)
