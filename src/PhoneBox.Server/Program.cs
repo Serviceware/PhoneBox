@@ -72,7 +72,7 @@ namespace PhoneBox.Server
                 x.AddDefaultPolicy(y => y.AllowCredentials()
                                          .AllowAnyHeader()
                                          .WithMethods("GET", "POST")
-                                         .WithOrigins(corsConfiguration.AllowedOrigins?.Split(';') ?? Array.Empty<string>()));
+                                         .WithOrigins(corsConfiguration.AllowedOrigins ?? Array.Empty<string>()));
             });
             services.AddSignalR();
             services.AddSingleton<ITelephonyEventDispatcherFactory, TelephonyEventHubDispatcherFactory>();

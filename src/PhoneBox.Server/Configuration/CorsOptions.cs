@@ -2,6 +2,6 @@
 {
     internal sealed class CorsOptions
     {
-        public string? AllowedOrigins { get; set; }
+        public string[]? AllowedOrigins { get; set; }
     }
 }
