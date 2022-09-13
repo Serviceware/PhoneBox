@@ -20,7 +20,7 @@ namespace PhoneBox.TapiService
         public TapiConnector(ITelephonyEventDispatcherFactory eventDispatcherFactory, ILogger<TapiConnector> logger)
         {
             _eventDispatcherFactory = eventDispatcherFactory;
-            this._logger = logger;
+            _logger = logger;
             _callNotification = new TapiEventNotificationSink();
         }
 
@@ -110,61 +110,33 @@ DialableAddress: {DialableAddress}", addressType, address.ServiceProviderName, a
             {
                 switch (tapiEvent)
                 {
-                    case TAPI_EVENT.TE_CALLNOTIFICATION:
-                        await this.PublishCallNotificationEvent(tapiEvent, (ITCallNotificationEvent)pEvent).ConfigureAwait(false);
-                        break;
-
                     case TAPI_EVENT.TE_CALLSTATE:
-                        await this.PublishCallStateEvent(tapiEvent, (ITCallStateEvent)pEvent).ConfigureAwait(false);
+                        await PublishCallStateEvent((ITCallStateEvent)pEvent).ConfigureAwait(false);
                         break;
                 }
             }
 
-            private async Task PublishCallStateEvent(TAPI_EVENT tapiEvent, ITCallStateEvent stateEvent)
+            private async Task PublishCallStateEvent(ITCallStateEvent stateEvent)
             {
                 ITCallInfo call = stateEvent.Call;
-                if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription? registration))
+                if (!_registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription registration))
                     return;
-
-                PhoneBox.Abstractions.CallStateType stateEnum = new CallStateType();
 
                 string phoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
-                string debugInfo = CallInfoAsText(tapiEvent, call);
-                await registration.Publisher.OnCallState(new CallStateEvent(phoneNumber, debugInfo, stateEnum)).ConfigureAwait(false);
-
-                if (call.CallState == CALL_STATE.CS_CONNECTED)
+                switch (call.CallState)
                 {
-                    await registration.Publisher.OnCallConnected(new CallConnectedEvent(phoneNumber)).ConfigureAwait(false);
+                    case CALL_STATE.CS_CONNECTED:
+                        await registration.Publisher.OnCallConnected(new CallConnectedEvent(phoneNumber)).ConfigureAwait(false);
+                        break;
+
+                    case CALL_STATE.CS_DISCONNECTED:
+                        await registration.Publisher.OnCallDisconnected(new CallDisconnectedEvent(phoneNumber)).ConfigureAwait(false);
+                        break;
                 }
-                else if (call.CallState == CALL_STATE.CS_DISCONNECTED)
-                {
-                    await registration.Publisher.OnCallDisconnected(new CallDisconnectedEvent()).ConfigureAwait(false);
-                }
-            }
-
-            private async Task PublishCallNotificationEvent(TAPI_EVENT tapiEvent, ITCallNotificationEvent notificationEvent)
-            {
-                ITCallInfo call = notificationEvent.Call;
-                if (!this._registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription? registration))
-                    return;
-
-                string debugInfo = CallInfoAsText(tapiEvent, call);
-                string callerPhoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
-                string callStateKey = call.CallState.ToString();
-                bool hasCallControl = call.Privilege == CALL_PRIVILEGE.CP_OWNER;
-                await registration.Publisher.OnCallNotification(new CallNotificationEvent(debugInfo, callerPhoneNumber, callStateKey, hasCallControl)).ConfigureAwait(false);
-            }
-
-            private static string CallInfoAsText(TAPI_EVENT tapiEvent, ITCallInfo callInfo, string txt = "")
-            {
-                int callId = callInfo.CallInfoLong[CALLINFO_LONG.CIL_CALLID];
-                string callerNumber = callInfo.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
-                //exception!!! string callerName = callInfo.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNAME];
-                return $"{tapiEvent} #{callId} S:{callInfo.CallState}, P:[{callInfo.Privilege}], Cu:[{callerNumber}] {txt}.";
             }
         }
 
-        private sealed class TapiAddressSubscription
+        private readonly struct TapiAddressSubscription
         {
             public string AddressName { get; }
             public CallSubscriber Subscriber { get; }

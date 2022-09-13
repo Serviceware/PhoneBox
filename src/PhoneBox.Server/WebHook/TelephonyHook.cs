@@ -20,8 +20,8 @@ namespace PhoneBox.Server.WebHook
         private async Task HandleWebHookRequest(string fromPhoneNumber, string toPhoneNumber, HttpContext context)
         {
             ITelephonyEventDispatcher telephonyEventDispatcher = this._telephonyEventDispatcherFactory.Create(new CallSubscriber(toPhoneNumber));
-            CallNotificationEvent notification = new CallNotificationEvent("WebHook", fromPhoneNumber, callStateKey: null, hasCallControl: false);
-            await telephonyEventDispatcher.OnCallNotification(notification).ConfigureAwait(false);
+            CallConnectedEvent call = new CallConnectedEvent(fromPhoneNumber);
+            await telephonyEventDispatcher.OnCallConnected(call).ConfigureAwait(false);
             context.Response.StatusCode = 200;
             await context.Response.WriteAsync("Thx!").ConfigureAwait(false);
         }

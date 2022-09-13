@@ -4,7 +4,7 @@ namespace PhoneBox.Abstractions
 {
     public interface ITelephonyHub
     {
-        Task ReceiveCallNotification(CallNotificationEvent content);
-        Task ReceiveCallState(CallStateEvent content);
+        Task ReceiveCallConnected(CallConnectedEvent content);
+        Task ReceiveCallDisconnected(CallDisconnectedEvent content);
     }
 }

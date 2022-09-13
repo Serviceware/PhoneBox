@@ -26,40 +26,6 @@ paths:
           description: Success
       security:
       - openIdConnect: [ ]
-  /TelephonyHub/ReceiveCallNotification:
-    post:
-      tags:
-        - TelephonyHub
-      operationId: ReceiveCallNotification
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CallNotificationEvent'
-        required: true
-      responses: 
-        '204':
-          description: NoContent
-      security:
-      - openIdConnect: [ ]
-      x-websocket: true
-  /TelephonyHub/ReceiveCallState:
-    post:
-      tags:
-        - TelephonyHub
-      operationId: ReceiveCallState
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CallStateEvent'
-        required: true
-      responses: 
-        '204':
-          description: NoContent
-      security:
-      - openIdConnect: [ ]
-      x-websocket: true
   /TelephonyHub/ReceiveCallConnected:
     post:
       tags:
@@ -96,48 +62,6 @@ paths:
       x-websocket: true
 components:
   schemas:
-    CallNotificationEvent:
-      required:
-        - DebugInfo
-        - CallerPhoneNumber
-        - CallStateKey
-        - HasCallControl
-      type: object
-      properties:
-        DebugInfo:
-          type: string
-        CallerPhoneNumber:
-          type: string
-        CallStateKey:
-          type: string
-        HasCallControl:
-          type: boolean
-      additionalProperties: false
-    CallStateEvent:
-      required:
-        - PhoneNumber
-        - DebugInfo
-      type: object
-      properties:
-        PhoneNumber:
-          type: string
-        DebugInfo:
-          type: string
-        CallStateType:
-          $ref: '#/components/schemas/CallStateType'
-      additionalProperties: false
-    CallStateType:
-      enum:
-        - 0
-        - 2
-        - 3
-      type: integer
-      description: ddd
-      format: int32
-      x-enum-varnames:
-        - CallStateUnknown
-        - CallStateConnected
-        - CallStateDisconnected
     CallConnectedEvent:
       required:
         - PhoneNumber
@@ -147,9 +71,13 @@ components:
           type: string
       additionalProperties: false
     CallDisconnectedEvent:
+      required:
+        - PhoneNumber
       type: object
+      properties:
+        PhoneNumber:
+          type: string
       additionalProperties: false
-
   securitySchemes:
     openIdConnect:
       type: openIdConnect

@@ -32,8 +32,8 @@ namespace PhoneBox.Client
                                                          .WithAutomaticReconnect()
                                                          .Build();
             this._connection.Closed += this.OnHubConnectionClosed;
-            _ = this._connection.On<CallNotificationEvent>(this.ReceiveCallNotification);
-            _ = this._connection.On<CallStateEvent>(this.ReceiveCallState);
+            _ = this._connection.On<CallConnectedEvent>(this.ReceiveCallConnected);
+            _ = this._connection.On<CallDisconnectedEvent>(this.ReceiveCallDisconnected);
 
             int retries = 0;
             while (true)
@@ -72,25 +72,15 @@ namespace PhoneBox.Client
         #endregion
 
         #region ITelephonyHub Members
-        public Task ReceiveCallNotification(CallNotificationEvent call)
+        public Task ReceiveCallConnected(CallConnectedEvent call)
         {
-            this._logger.LogInformation("Received call notification: {CallerPhoneNumber} {CallStateKey} {ca.HasCallControl} ==> {DebugInfo}", call.CallerPhoneNumber, call.CallStateKey, call.HasCallControl, call.DebugInfo);
+            this._logger.LogInformation("Received call connected. PhoneNumber: {PhoneNumber}", call.PhoneNumber);
             return Task.CompletedTask;
         }
 
-        public Task ReceiveCallState(CallStateEvent call)
-        {
-            this._logger.LogInformation("Received call state: {DebugInfo}", call.DebugInfo);
-            return Task.CompletedTask;
-        }
-        public Task ReceiveCallConnected(CallConnectedEvent call)
-        {
-            this._logger.LogInformation("Received call connected. PhoneNumber:{PhoneNumber}", call.PhoneNumber);
-            return Task.CompletedTask;
-        }
         public Task ReceiveCallDisconnected(CallDisconnectedEvent call)
         {
-            this._logger.LogInformation("Received call disconnected.");
+            this._logger.LogInformation("Received call disconnected. PhoneNumber: {PhoneNumber}", call.PhoneNumber);
             return Task.CompletedTask;
         }
         #endregion

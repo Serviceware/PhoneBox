@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -36,7 +37,7 @@ namespace PhoneBox.Generators.Tests
         {
             (GeneratorDriverRunResult? _, IList<SyntaxTree>? _, Compilation? contractCompilation) = this.CompileContracts();
 
-            string contractAssemblyFilePath = System.IO.Path.Combine(base.TestDirectory, $"{typeof(GeneratorTest).Namespace}.Contracts.generated.dll");
+            string contractAssemblyFilePath = Path.Combine(this.TestDirectory, $"{typeof(GeneratorTest).Namespace}.Contracts.generated.dll");
             EmitResult emitResult = contractCompilation.Emit(contractAssemblyFilePath);
             RoslynUtility.VerifyCompilation(emitResult.Diagnostics);
             Assert.IsTrue(emitResult.Success, "emitResult.Success");
@@ -69,8 +70,8 @@ namespace PhoneBox.Generators.Tests
           , metadataContractNamespace: null
           , expectedFiles: new[]
             {
-                "CallNotificationEvent.generated.cs"
-              , "CallStateEvent.generated.cs"
+                "CallConnectedEvent.generated.cs"
+              , "CallDisconnectedEvent.generated.cs"
               , "ITelephonyHub.generated.cs"
             }
         );
@@ -96,7 +97,7 @@ namespace PhoneBox.Generators.Tests
 
             Mock<AdditionalText> additionalText = new Mock<AdditionalText>(MockBehavior.Strict);
             additionalText.SetupGet(x => x.Path).Returns(".yml");
-            additionalText.Setup(x => x.GetText(It.IsAny<CancellationToken>())).Returns(SourceText.From(base.GetEmbeddedResourceContent("OpenApiSchema.yml")));
+            additionalText.Setup(x => x.GetText(It.IsAny<CancellationToken>())).Returns(SourceText.From(this.GetEmbeddedResourceContent("OpenApiSchema.yml")));
 
             Mock<AnalyzerConfigOptions> globalAnalyzerConfigOptions = new Mock<AnalyzerConfigOptions>(MockBehavior.Strict);
             Mock<AnalyzerConfigOptions> fileAnalyzerConfigOptions = new Mock<AnalyzerConfigOptions>(MockBehavior.Strict);
@@ -142,12 +143,12 @@ namespace PhoneBox.Generators.Tests
             for (int i = 1; i < syntaxTrees.Count; i++)
             {
                 SyntaxTree outputSyntaxTree = syntaxTrees[i];
-                string fileName = System.IO.Path.GetFileName(outputSyntaxTree.FilePath);
+                FileInfo outputFile = new FileInfo(outputSyntaxTree.FilePath);
                 string actualCode = outputSyntaxTree.ToString();
-                base.AddResultFile(fileName, actualCode);
-                Assert.AreEqual(expectedFiles[i - 1], fileName);
-                string expectedCode = base.GetEmbeddedResourceContent(fileName);
-                base.AssertEqual(expectedCode, actualCode, "cs");
+                this.AddResultFile(outputFile.Name, actualCode);
+                Assert.AreEqual(expectedFiles[i - 1], outputFile.Name);
+                string expectedCode = this.GetEmbeddedResourceContent(outputFile.Name);
+                this.AssertEqual(expectedCode, actualCode, outputName: Path.GetFileNameWithoutExtension(outputFile.Name), extension: outputFile.Extension.TrimStart('.'));
             }
 
             RoslynUtility.VerifyCompilation(outputCompilation);

@@ -29,20 +29,12 @@ namespace PhoneBox.Server.SignalR
                 _userid = userid;
             }
 
-            async Task ITelephonyEventDispatcher.OnCallNotification(CallNotificationEvent call)
-            {
-                await _hub.Clients.User(_userid).ReceiveCallNotification(call).ConfigureAwait(false);
-            }
-
-            async Task ITelephonyEventDispatcher.OnCallState(CallStateEvent call)
-            {
-                await _hub.Clients.User(_userid).ReceiveCallState(call).ConfigureAwait(false);
-            }
             async Task ITelephonyEventDispatcher.OnCallConnected(CallConnectedEvent call)
             {
                 await _hub.Clients.User(_userid).ReceiveCallConnected(call).ConfigureAwait(false);
             }
-            async Task ITelephonyEventDispatcher.OnCallDisconnected(PhoneBox.Abstractions.CallDisconnectedEvent call)
+
+            async Task ITelephonyEventDispatcher.OnCallDisconnected(CallDisconnectedEvent call)
             {
                 await _hub.Clients.User(_userid).ReceiveCallDisconnected(call).ConfigureAwait(false);
             }
