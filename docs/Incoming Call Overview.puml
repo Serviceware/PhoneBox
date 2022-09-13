@@ -2,11 +2,11 @@
 @startuml Incoming Call Overview
 
 [Phone Box] As Pb
-[Serviceware Module] AS module
+[Caller Information Store] AS module
 [Telephone System] AS TK
 
 actor "Caller" AS Caller
-actor "Service Desk" AS SD
+actor "Web Client" AS SD
 [Phone Client] AS PC
 
 

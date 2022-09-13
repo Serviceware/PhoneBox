@@ -1,0 +1,34 @@
+
+@startuml Phone System Integration
+
+skinparam componentStyle rectangle
+
+component "Windows Server" AS WS {
+
+    component "Phone Box" AS Pb {
+        rectangle [Tapi Connector] AS TapiCon
+        rectangle [Web Connector] AS WebConn
+        rectangle [Event Hub Dispatcher] AS event
+        rectangle "Tapi Client" AS TapiSvc
+    }
+    component "Tapi Service Provider" AS TSP
+
+}
+
+
+actor "Web Client" AS SD
+component "Telephone System" AS TK {
+    
+}
+
+TapiCon -- TapiSvc
+TapiSvc -- TSP:TAPI protocols
+TK -- TSP: proprietary
+
+
+event -- SD: SignalR 
+TapiCon 0)-- event
+WebConn 0)-- event
+WebConn 0)-- TK :http requests
+
+@enduml
