@@ -3,7 +3,7 @@
 namespace PhoneBox.Generators
 {
     [Flags]
-    public enum SignalRHubGenerationOutputs
+    internal enum SignalRHubGenerationOutputs
     {
         None = 0,
         Interface = 1,

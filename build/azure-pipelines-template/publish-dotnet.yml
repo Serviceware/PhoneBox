@@ -36,8 +36,10 @@ steps:
         --p:IgnoreProjectGuid=True
         --p:PublishReadyToRun=${{ parameters.publishReadyToRun }}
         --p:PublishSingleFile=${{ parameters.publishSingleFile }}
+        --p:IncludeNativeLibrariesForSelfExtract=True
 
        # Currently causing some IL2026 errors (..which has 'RequiresUnreferencedCodeAttribute' can break functionality when trimming application code)
+       # See: https://github.com/dotnet/aspnetcore/issues/27384
        #--p:PublishTrimmed=True
        #--p:NoWarn=1144
   

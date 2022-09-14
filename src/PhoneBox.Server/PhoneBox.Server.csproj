@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <NoWarn>$(NoWarn);IL2026</NoWarn>
   </PropertyGroup>
 
   <Import Project="..\PhoneBox.Generators\build\PhoneBox.Generators.targets" />
@@ -25,7 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PhoneBox.Abstractions\PhoneBox.Abstractions.csproj" />
-    <ProjectReference Include="..\PhoneBox.Generators\PhoneBox.Generators.csproj" PrivateAssets="all" OutputItemType="Analyzer" />
+    <ProjectReference Include="..\PhoneBox.Generators\PhoneBox.Generators.csproj" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\PhoneBox.TapiService\PhoneBox.TapiService.csproj" />
   </ItemGroup>
 

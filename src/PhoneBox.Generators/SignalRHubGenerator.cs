@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -18,6 +20,8 @@ namespace PhoneBox.Generators
     [Generator]
     public sealed class SignalRHubGenerator : IIncrementalGenerator
     {
+        private static readonly Assembly ThisAssembly = typeof(SignalRHubGenerator).Assembly;
+        private static readonly string EmbeddedSourcePrefix = $"{nameof(PhoneBox)}.{nameof(Generators)}.EmbeddedSources";
         private static readonly string AttributeTypeName = typeof(SignalRHubGenerationAttribute).FullName;
         private const string EnumVarNamesExtension = "x-enum-varnames";
 
@@ -45,6 +49,7 @@ namespace PhoneBox.Generators
                                });
 
             context.RegisterSourceOutput(all, (x, y) => CollectSources(x, y.Container, y.RootNamespace, y.AssemblyName, y.OutputFilter, y.AnalyzerConfigOptionsProvider));
+            context.RegisterPostInitializationOutput(RegisterPostInitializationOutput);
         }
 
         private static void CollectSources(SourceProductionContext context, OpenApiDocumentContainer container, string? rootNamespace, string? assemblyName, SignalRHubGenerationOutputs outputFilter, AnalyzerConfigOptionsProvider analyzerConfigOptionsProvider)
@@ -81,6 +86,33 @@ namespace PhoneBox.Generators
 
             if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Implementation))
                 AddExtensions(context, @namespace, hubGroups.Select(x => x.Key));
+        }
+
+        private static void RegisterPostInitializationOutput(IncrementalGeneratorPostInitializationContext context)
+        {
+            foreach (string resourceName in ThisAssembly.GetManifestResourceNames())
+            {
+                if (!resourceName.StartsWith(EmbeddedSourcePrefix, StringComparison.Ordinal)) 
+                    continue;
+
+                string fileName = resourceName.Substring(EmbeddedSourcePrefix.Length + 1);
+                int extensionIndex = fileName.LastIndexOf('.');
+                if (extensionIndex < 0) 
+                    extensionIndex = fileName.Length;
+
+                fileName = fileName.Insert(extensionIndex, ".generated");
+                
+                string content;
+                using (Stream stream = ThisAssembly.GetManifestResourceStream(resourceName))
+                {
+                    using (TextReader reader = new StreamReader(stream))
+                    {
+                        content = reader.ReadToEnd();
+                    }
+                }
+
+                context.AddSource(fileName, content);
+            }
         }
 
         private static void AddImplementation(SourceProductionContext context, string className, string interfaceName, string? @namespace, string? contractNamespace, IEnumerable<OpenApiHubMethod> methods)
