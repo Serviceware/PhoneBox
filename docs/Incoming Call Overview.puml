@@ -10,14 +10,14 @@ actor "Web Client" AS SD
 [Phone Client] AS PC
 
 
-Caller -[#blue]-> TK :1. offering call
-TK -[#blue]-> PC     :1. offering call
-PC -[#blue]-> SD     :1. offering call
-SD -[#blue]-> PC     :2. accept call
-PC -[#blue]-> TK     :2. accept call
-TK -[#green]-> Pb    :3. connected call
-Pb -[#green]-> SD    :3. connected call
-SD --> module        :4. get contextual data
+Caller -[#blue]ri-> TK :1. offering call
+TK -[#blue]ri-> PC     :1. offering call
+PC -[#blue]do-> SD     :1. offering call
+SD -[#blue]-> PC      :2. accept call
+PC -[#blue]-> TK      :2. accept call
+TK -[#green]-> Pb     :3. connected call
+Pb -[#green]-> SD     :3. connected call
+SD --> module         :4. get contextual data
 
 
 legend

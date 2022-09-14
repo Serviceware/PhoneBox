@@ -9,6 +9,8 @@ component "Windows Server" AS WS {
         rectangle [Tapi Connector] AS TapiCon
         rectangle [Web Connector] AS WebConn
         rectangle [Event Hub Dispatcher] AS event
+        'rectangle [Custom Connector] AS custom #line.dotted
+        
         rectangle "Tapi Client" AS TapiSvc
     }
     component "Tapi Service Provider" AS TSP
@@ -30,5 +32,6 @@ event -- SD: SignalR
 TapiCon 0)-- event
 WebConn 0)-- event
 WebConn 0)-- TK :http requests
+'custom 0)-- event
 
 @enduml
