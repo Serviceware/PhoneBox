@@ -27,9 +27,9 @@ namespace PhoneBox.Generators.Tests
         {
             (GeneratorDriverRunResult? runResult, IList<SyntaxTree>? syntaxTrees, Compilation? _) = this.CompileContracts();
 
-            Assert.AreEqual(3, runResult.GeneratedTrees.Length);
-            Assert.AreEqual(3, runResult.Results[0].GeneratedSources.Length);
-            Assert.AreEqual(4, syntaxTrees.Count);
+            Assert.AreEqual(5, runResult.GeneratedTrees.Length);
+            Assert.AreEqual(5, runResult.Results[0].GeneratedSources.Length);
+            Assert.AreEqual(6, syntaxTrees.Count);
         }
 
         [TestMethod]
@@ -72,6 +72,8 @@ namespace PhoneBox.Generators.Tests
             {
                 "CallConnectedEvent.generated.cs"
               , "CallDisconnectedEvent.generated.cs"
+              , "CallState.generated.cs"
+              , "CallHangUpReason.generated.cs"
               , "ITelephonyHub.generated.cs"
             }
         );

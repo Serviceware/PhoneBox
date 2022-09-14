@@ -19,6 +19,7 @@ namespace PhoneBox.Generators
     public sealed class SignalRHubGenerator : IIncrementalGenerator
     {
         private static readonly string AttributeTypeName = typeof(SignalRHubGenerationAttribute).FullName;
+        private const string EnumVarNamesExtension = "x-enum-varnames";
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
@@ -121,22 +122,51 @@ namespace {@namespace}
 
         private static void AddModel(SourceProductionContext context, string? @namespace, OpenApiHubModel model)
         {
-            string propertiesStr = String.Join(Environment.NewLine, model.Properties.Select(x => $"        public {x.TypeName} {x.PropertyName} {{ get; }}"));
-            string ctorParametersStr = String.Join(", ", model.Properties.Select(x => $"{x.TypeName} {ToCamelCase(x.PropertyName)}"));
-            string ctorAssignmentsStr = String.Join(Environment.NewLine, model.Properties.Select(x => $"            this.{x.PropertyName} = {ToCamelCase(x.PropertyName)};"));
+            string content = GenerateModel(@namespace, model);
+            context.AddSource($"{model.Name}.generated.cs", content);
+        }
+
+        private static string GenerateModel(string? @namespace, OpenApiHubModel model)
+        {
+            switch (model)
+            {
+                case OpenApiHubClass @class: return GenerateClass(@namespace, @class);
+                case OpenApiHubEnum @enum: return GenerateEnum(@namespace, @enum);
+                default: throw new ArgumentOutOfRangeException(nameof(model), model, null);
+            }
+        }
+
+        private static string GenerateClass(string? @namespace, OpenApiHubClass @class)
+        {
+            string propertiesStr = String.Join(Environment.NewLine, @class.Properties.Select(x => $"        public {x.TypeName} {x.PropertyName} {{ get; }}"));
+            string ctorParametersStr = String.Join(", ", @class.Properties.Select(x => $"{x.TypeName} {ToCamelCase(x.PropertyName)}"));
+            string ctorAssignmentsStr = String.Join(Environment.NewLine, @class.Properties.Select(x => $"            this.{x.PropertyName} = {ToCamelCase(x.PropertyName)};"));
             string content = $@"namespace {@namespace}
 {{
-    public sealed class {model.Name}
+    public sealed class {@class.Name}
     {{
 {propertiesStr}
 
-        public {model.Name}({ctorParametersStr})
+        public {@class.Name}({ctorParametersStr})
         {{
 {ctorAssignmentsStr}
         }}
     }}
 }}";
-            context.AddSource($"{model.Name}.generated.cs", content);
+            return content;
+        }
+
+        private static string GenerateEnum(string? @namespace, OpenApiHubEnum @enum)
+        {
+            string membersStr = String.Join($",{Environment.NewLine}", @enum.Members.Select(x => $"        {x.Name} = {x.Value}"));
+            string content = $@"namespace {@namespace}
+{{
+    public enum {@enum.Name}
+    {{
+{membersStr}
+    }}
+}}";
+            return content;
         }
 
         private static void AddExtensions(SourceProductionContext context, string? @namespace, IEnumerable<OpenApiHub> hubs)
@@ -178,13 +208,40 @@ namespace Microsoft.AspNetCore.Builder
                 string schemaName = schemaPair.Key;
                 OpenApiSchema modelSchema = schemaPair.Value;
 
-                OpenApiHubModel model = new OpenApiHubModel(schemaName);
+                bool isEnum = modelSchema.Enum.Any();
 
-                foreach (KeyValuePair<string, OpenApiSchema> propertyPair in modelSchema.Properties)
+                OpenApiHubModel model;
+                if (isEnum)
                 {
-                    string propertyName = propertyPair.Key;
-                    OpenApiSchema propertySchema = propertyPair.Value;
-                    model.Properties.Add(new OpenApiHubModelProperty(propertyName, GetCSharpTypeName(propertySchema)));
+                    OpenApiHubEnum @enum = new OpenApiHubEnum(schemaName);
+                    model = @enum;
+
+                    IDictionary<int, string> enumNameMap = new Dictionary<int, string>();
+                    if (modelSchema.Extensions.TryGetValue(EnumVarNamesExtension, out IOpenApiExtension enumVarNamesValue) && enumVarNamesValue is OpenApiArray enumVarNamesArray)
+                    {
+                        enumNameMap.AddRange(enumVarNamesArray.Select((x, i) => new KeyValuePair<int, string>(i, ParseEnumVarName(x))));
+                    }
+
+                    IList<(int index, string? name, int value)> enumMembers = modelSchema.Enum.Select(ParseEnumMember).ToArray();
+
+                    for (int i = 0; i < modelSchema.Enum.Count; i++)
+                    {
+                        IOpenApiAny enumMember = modelSchema.Enum[i];
+                        OpenApiHubEnumMember member = ParseEnumMember(enumMember, i, enumNameMap);
+                        @enum.Members.Add(member);
+                    }
+                }
+                else
+                {
+                    OpenApiHubClass @class = new OpenApiHubClass(schemaName);
+                    model = @class;
+
+                    foreach (KeyValuePair<string, OpenApiSchema> propertyPair in modelSchema.Properties)
+                    {
+                        string propertyName = propertyPair.Key;
+                        OpenApiSchema propertySchema = propertyPair.Value;
+                        @class.Properties.Add(new OpenApiHubClassProperty(propertyName, GetCSharpTypeName(propertySchema)));
+                    }
                 }
 
                 yield return model;
@@ -359,6 +416,58 @@ namespace Microsoft.AspNetCore.Builder
             return value;
         }
 
+        private static (int index, string? name, int value) ParseEnumMember(IOpenApiAny enumMember, int index)
+        {
+            switch (enumMember)
+            {
+                case OpenApiInteger @int:
+                    int intValue = @int.Value;
+                    return (index: index, name: null, value: intValue);
+
+                case OpenApiString @string:
+                    return (index: index, name: @string.Value, value: index);
+
+                default: 
+                    throw new ArgumentOutOfRangeException(nameof(enumMember), enumMember, null);
+            }
+        }
+
+        private static OpenApiHubEnumMember ParseEnumMember(IOpenApiAny enumMember, int index, IDictionary<int, string> enumNameMap)
+        {
+            switch (enumMember)
+            {
+                case OpenApiInteger @int:
+                    int intValue = @int.Value;
+                    if (!enumNameMap.TryGetValue(index, out string name))
+                        throw new InvalidOperationException($"Missing enum name for value '{intValue}'. Specify it using the {EnumVarNamesExtension} property.");
+
+                    return new OpenApiHubEnumMember(name, intValue);
+
+                case OpenApiString @string:
+                    return new OpenApiHubEnumMember(@string.Value, index);
+
+                default: throw new ArgumentOutOfRangeException(nameof(enumMember), enumMember, null);
+            }
+        }
+
+        private static string ParseEnumVarName(IOpenApiAny value)
+        {
+            switch (value)
+            {
+                case OpenApiString @string: return @string.Value;
+                default: throw new ArgumentOutOfRangeException(nameof(value), value, null);
+            }
+        }
+
+        private static int ParseEnumValue(IOpenApiAny value)
+        {
+            switch (value)
+            {
+                case OpenApiInteger @int: return @int.Value;
+                default: throw new ArgumentOutOfRangeException(nameof(value), value, null);
+            }
+        }
+
         private static string NormalizeHubName(string hubName)
         {
             string normalizedHubName = hubName;
@@ -464,27 +573,57 @@ namespace Microsoft.AspNetCore.Builder
             }
         }
 
-        private readonly struct OpenApiHubModel
+        private abstract class OpenApiHubModel
         {
             public string Name { get; }
-            public ICollection<OpenApiHubModelProperty> Properties { get; }
 
-            public OpenApiHubModel(string name)
+            protected OpenApiHubModel(string name)
             {
                 this.Name = name;
-                this.Properties = new Collection<OpenApiHubModelProperty>();
             }
         }
 
-        private readonly struct OpenApiHubModelProperty
+        private sealed class OpenApiHubClass : OpenApiHubModel
+        {
+            public ICollection<OpenApiHubClassProperty> Properties { get; }
+
+            public OpenApiHubClass(string name) : base(name)
+            {
+                this.Properties = new Collection<OpenApiHubClassProperty>();
+            }
+        }
+
+        private readonly struct OpenApiHubClassProperty
         {
             public string PropertyName { get; }
             public string TypeName { get; }
 
-            public OpenApiHubModelProperty(string propertyName, string typeName)
+            public OpenApiHubClassProperty(string propertyName, string typeName)
             {
                 this.PropertyName = propertyName;
                 this.TypeName = typeName;
+            }
+        }
+
+        private sealed class OpenApiHubEnum : OpenApiHubModel
+        {
+            public ICollection<OpenApiHubEnumMember> Members { get; }
+
+            public OpenApiHubEnum(string name) : base(name)
+            {
+                this.Members = new Collection<OpenApiHubEnumMember>();
+            }
+        }
+
+        private readonly struct OpenApiHubEnumMember
+        {
+            public string Name { get; }
+            public int Value { get; }
+
+            public OpenApiHubEnumMember(string name, int value)
+            {
+                this.Name = name;
+                this.Value = value;
             }
         }
     }

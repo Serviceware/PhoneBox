@@ -78,6 +78,24 @@ components:
         PhoneNumber:
           type: string
       additionalProperties: false
+    CallState:
+      enum:
+        - None
+        - Connected
+        - Disconnected
+    CallHangUpReason:
+      enum:
+        - 0
+        - 1
+        - 2
+        - 4
+      type: integer
+      format: int32
+      x-enum-varnames:
+        - None
+        - CallerClosed
+        - RecipientClosed
+        - BothClosed
   securitySchemes:
     openIdConnect:
       type: openIdConnect
