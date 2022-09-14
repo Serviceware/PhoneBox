@@ -1,7 +1,9 @@
 # PhoneBox
-Call me on my tele TAPI.
-
 [![Build Status](https://img.shields.io/azure-devops/build/serviceware/phonebox/4/main)](https://dev.azure.com/serviceware/PhoneBox/_build/latest?definitionId=4&branchName=main) [![Test Status](https://img.shields.io/azure-devops/tests/serviceware/phonebox/4/main)](https://dev.azure.com/serviceware/PhoneBox/_build/latest?definitionId=4&branchName=main) [![Code coverage](https://img.shields.io/azure-devops/coverage/serviceware/phonebox/4/main)](https://dev.azure.com/serviceware/PhoneBox/_build/latest?definitionId=4&branchName=main)
+
+## Architecture
+![](/docs/Phone%20System%20Integration.png)
+![](/docs/Incoming%20Call%20Overview.png)
 
 ## Authorization
 Keycloak requirements:
