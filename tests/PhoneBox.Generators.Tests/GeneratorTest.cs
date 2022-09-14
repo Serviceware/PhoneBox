@@ -23,26 +23,19 @@ namespace PhoneBox.Generators.Tests
     public sealed class GeneratorTest : TestBase
     {
         [TestMethod]
-        public void SignalRHubGenerator_Contracts()
-        {
-            (GeneratorDriverRunResult runResult, IList<SyntaxTree> syntaxTrees, Compilation _) = this.CompileContracts(assertOutputs: true);
-
-            Assert.AreEqual(7, runResult.GeneratedTrees.Length);
-            Assert.AreEqual(7, runResult.Results[0].GeneratedSources.Length);
-            Assert.AreEqual(8, syntaxTrees.Count);
-        }
+        public void SignalRHubGenerator_Contracts() => this.CompileContracts(assertOutputs: true);
 
         [TestMethod]
         public void SignalRHubGenerator_Implementation()
         {
-            (GeneratorDriverRunResult _, IList<SyntaxTree> _, Compilation? contractCompilation) = this.CompileContracts(assertOutputs: false);
+            Compilation contractCompilation = this.CompileContracts(assertOutputs: false);
 
             string contractAssemblyFilePath = Path.Combine(this.TestDirectory, $"{typeof(GeneratorTest).Namespace}.Contracts.generated.dll");
             EmitResult emitResult = contractCompilation.Emit(contractAssemblyFilePath);
             RoslynUtility.VerifyCompilation(emitResult.Diagnostics);
             Assert.IsTrue(emitResult.Success, "emitResult.Success");
 
-            (GeneratorDriverRunResult runResult, IList<SyntaxTree> syntaxTrees, Compilation _) = this.RunGenerator
+            _ = this.RunGenerator
             (
                 filter: SignalRHubGenerationOutputs.Implementation
               , metadataNamespace: null
@@ -60,13 +53,9 @@ namespace PhoneBox.Generators.Tests
               , MetadataReference.CreateFromFile(typeof(IEndpointRouteBuilder).Assembly.Location)
               , MetadataReference.CreateFromFile(contractAssemblyFilePath)
             );
-
-            Assert.AreEqual(4, runResult!.GeneratedTrees.Length);
-            Assert.AreEqual(4, runResult!.Results[0].GeneratedSources.Length);
-            Assert.AreEqual(5, syntaxTrees.Count);
         }
 
-        private (GeneratorDriverRunResult runResult, IList<SyntaxTree> syntaxTrees, Compilation outputCompilation) CompileContracts(bool assertOutputs) => this.RunGenerator
+        private Compilation CompileContracts(bool assertOutputs) => this.RunGenerator
         (
             filter: SignalRHubGenerationOutputs.Model | SignalRHubGenerationOutputs.Interface
           , metadataNamespace: "PhoneBox.Abstractions"
@@ -84,7 +73,7 @@ namespace PhoneBox.Generators.Tests
             }
         );
 
-        private (GeneratorDriverRunResult runResult, IList<SyntaxTree> syntaxTrees, Compilation outputCompilation) RunGenerator(SignalRHubGenerationOutputs filter, string? metadataNamespace, string? metadataContractNamespace, bool assertOutputs, IReadOnlyList<string> expectedFiles, params MetadataReference[] additionalReferences)
+        private Compilation RunGenerator(SignalRHubGenerationOutputs filter, string? metadataNamespace, string? metadataContractNamespace, bool assertOutputs, IReadOnlyList<string> expectedFiles, params MetadataReference[] additionalReferences)
         {
             IEnumerable<string> filterFlags = Enum.GetValues<SignalRHubGenerationOutputs>()
                                                   .Where(x => filter.HasFlag(x))
@@ -166,7 +155,11 @@ namespace PhoneBox.Generators.Tests
             RoslynUtility.VerifyCompilation(outputCompilation);
             RoslynUtility.VerifyCompilation(diagnostics);
 
-            return (runResult, syntaxTrees, outputCompilation);
+            Assert.AreEqual(expectedFiles.Count, runResult.GeneratedTrees.Length);
+            Assert.AreEqual(expectedFiles.Count, runResult.Results[0].GeneratedSources.Length);
+            Assert.AreEqual(expectedFiles.Count + 1, syntaxTrees.Count);
+
+            return outputCompilation;
         }
     }
 }

@@ -21,8 +21,8 @@ namespace PhoneBox.Generators
     public sealed class SignalRHubGenerator : IIncrementalGenerator
     {
         private static readonly Assembly ThisAssembly = typeof(SignalRHubGenerator).Assembly;
-        private static readonly string EmbeddedSourcePrefix = $"{nameof(PhoneBox)}.{nameof(Generators)}.EmbeddedSources";
         private static readonly string AttributeTypeName = typeof(SignalRHubGenerationAttribute).FullName;
+        private const string EmbeddedSourcePrefix = $"{nameof(PhoneBox)}.{nameof(Generators)}.EmbeddedSources";
         private const string EnumVarNamesExtension = "x-enum-varnames";
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -103,7 +103,7 @@ namespace PhoneBox.Generators
                 fileName = fileName.Insert(extensionIndex, ".generated");
                 
                 string content;
-                using (Stream stream = ThisAssembly.GetManifestResourceStream(resourceName))
+                using (Stream stream = ThisAssembly.GetManifestResourceStream(resourceName)!)
                 {
                     using (TextReader reader = new StreamReader(stream))
                     {
