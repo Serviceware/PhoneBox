@@ -16,7 +16,7 @@ namespace PhoneBox.Server
         private static async Task Main(string[] args)
         {
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-            builder.Configuration.AddJsonFile($"appsettings.{Environment.MachineName}.json", optional: true);
+            builder.Configuration.AddJsonFile($"appsettings.{Environment.MachineName}.json", optional: true, reloadOnChange: true);
             bool isDevelopment = builder.Environment.IsDevelopment();
 
             IConfigurationSection authorizationConfiguration = builder.Configuration.GetSection("Authorization");
@@ -88,6 +88,11 @@ namespace PhoneBox.Server
 
             app.MapHub<TelephonyHub>()
                .RequireAuthorization("HubConsumer");
+
+            if (isDevelopment)
+            {
+                app.MapGet("/configuration", () => ConfigurationSerializer.DumpConfiguration(builder.Configuration));
+            }
 
             TelephonyConnectorRegistrar.ConfigureProvider(app);
 
