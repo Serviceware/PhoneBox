@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PhoneBox.Abstractions;
+using PhoneBox.Server.Authorization;
+using PhoneBox.Server.Cors;
 using PhoneBox.Server.SignalR;
 
 namespace PhoneBox.Server
@@ -19,19 +23,20 @@ namespace PhoneBox.Server
             builder.Configuration.AddJsonFile($"appsettings.{Environment.MachineName}.json", optional: true, reloadOnChange: true);
             bool isDevelopment = builder.Environment.IsDevelopment();
 
-            IConfigurationSection authorizationConfiguration = builder.Configuration.GetSection("Authorization");
-            AuthorizationOptions authorizationOptions = authorizationConfiguration.Bind<AuthorizationOptions>();
-            CorsOptions corsConfiguration = builder.Configuration.Bind<CorsOptions>("CORS");
-
             IServiceCollection services = builder.Services;
-            services.Configure<AuthorizationOptions>(authorizationConfiguration);
+            services.Configure<AuthorizationOptions>(builder.Configuration.GetSection(AuthorizationOptions.ConfigurationSectionName));
+            services.Configure<CorsOptions>(builder.Configuration.GetSection(CorsOptions.ConfigurationSectionName));
+            services.ConfigureTarget<JwtBearerOptions>("HubConsumer", builder.Configuration)
+                    .MapFrom<AuthorizationOptions>(AuthorizationOptions.ConfigurationSectionName, (from, to) =>
+                    {
+                        to.Authority = from.Authority;
+                        to.TokenValidationParameters.ValidAudience = from.Audience;
+                        to.RequireHttpsMetadata = !isDevelopment || from.Authority?.StartsWith("http:", StringComparison.OrdinalIgnoreCase) is null or false;
+                    });
+
             services.AddAuthentication()
                     .AddJwtBearer("HubConsumer", x =>
                     {
-                        x.Authority = authorizationOptions.Authority;
-                        x.TokenValidationParameters.ValidAudience = authorizationOptions.Audience;
-                        x.RequireHttpsMetadata = !isDevelopment || authorizationOptions.Authority?.StartsWith("http:", StringComparison.OrdinalIgnoreCase) is null or false;
-
                         // We have to hook the OnMessageReceived event in order to
                         // allow the JWT authentication handler to read the access
                         // token from the query string when a WebSocket or 
@@ -60,21 +65,28 @@ namespace PhoneBox.Server
                             }
                         };
                     });
+            services.AddTransient<IAuthorizationPolicyProvider, AuthorizationPolicyProvider>();
             services.AddAuthorization(x =>
             {
                 x.AddPolicy("HubConsumer", y => y.AddAuthenticationSchemes("HubConsumer")
                                                  .RequireAuthenticatedUser()
-                                                 .RequireClaim(authorizationOptions.SubscriberIdClaimType)
+                                               // See additional configuration in AuthorizationPolicyProvider
+                                               //.RequireClaim(authorizationOptions.SubscriberIdClaimType)
                                                  .Build());
             });
+
+            services.AddTransient<ICorsPolicyProvider, CorsPolicyProvider>();
             services.AddCors(x =>
             {
                 x.AddDefaultPolicy(y => y.AllowCredentials()
                                          .AllowAnyHeader()
                                          .WithMethods("GET", "POST")
-                                         .WithOrigins(corsConfiguration.AllowedOrigins ?? Array.Empty<string>()));
+                                       // See additional configuration in CorsPolicyProvider
+                                       /*.WithOrigins(corsOptions.AllowedOrigins ?? Array.Empty<string>())*/);
             });
+
             services.AddSignalR();
+
             services.AddSingleton<ITelephonyEventDispatcherFactory, TelephonyEventHubDispatcherFactory>();
             services.AddSingleton<IUserIdProvider, SubscriberIdClaimUserIdProvider>();
 

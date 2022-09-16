@@ -78,6 +78,6 @@ namespace PhoneBox.Server
             }
         }
 
-        private static TelephonyOptions GetConfiguration(IConfiguration configuration) => configuration.Bind<TelephonyOptions>("Telephony");
+        private static TelephonyOptions GetConfiguration(IConfiguration configuration) => configuration.Bind<TelephonyOptions>(TelephonyOptions.ConfigurationSectionName);
     }
 }

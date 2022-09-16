@@ -20,7 +20,7 @@ namespace PhoneBox.Server.WebHook
         public override void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
             services.AddSingleton<ITelephonyHook, TelephonyHook>();
-            services.Configure<WebHookOptions>(configuration.GetSection("WebHook"));
+            services.Configure<WebHookOptions>(configuration.GetSection(WebHookOptions.ConfigurationSectionName));
             services.AddAuthentication()
                     .AddScheme<AuthenticationSchemeOptions, SecretKeyAuthenticationHandler>("WebHookConsumer", configureOptions: null);
             services.AddAuthorization(x =>
