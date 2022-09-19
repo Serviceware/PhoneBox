@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using PhoneBox.Abstractions;
 using PhoneBox.Server.Authorization;
 using PhoneBox.Server.Cors;
@@ -33,6 +34,8 @@ namespace PhoneBox.Server
                         to.TokenValidationParameters.ValidAudience = from.Audience;
                         to.RequireHttpsMetadata = !isDevelopment || from.Authority?.StartsWith("http:", StringComparison.OrdinalIgnoreCase) is null or false;
                     });
+            
+            services.AddLogging(x => x.AddSimpleConsole(y => y.TimestampFormat = "\x1B[1'm'\x1B[37'm'[yyyy-MM-dd HH:mm:ss.fff\x1B[39'm'\x1B[22'm'] "));
 
             services.AddAuthentication()
                     .AddJwtBearer("HubConsumer", x =>
