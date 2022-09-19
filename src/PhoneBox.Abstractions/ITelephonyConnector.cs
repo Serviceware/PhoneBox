@@ -2,6 +2,7 @@
 {
     public interface ITelephonyConnector
     {
-        void Subscribe(CallSubscriber subscriber);
+        void Subscribe(CallSubscriberConnection connection);
+        void Unsubscribe(CallSubscriberConnection connection);
     }
 }

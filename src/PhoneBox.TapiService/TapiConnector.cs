@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -13,7 +14,7 @@ namespace PhoneBox.TapiService
     {
         private readonly ITelephonyEventDispatcherFactory _eventDispatcherFactory;
         private readonly ILogger<TapiConnector> _logger;
-        private readonly TapiEventNotificationSink _callNotification;
+        private readonly TapiEventNotificationSink _callNotificationSink;
 
         private TAPIClass? _tapiClient;
 
@@ -21,14 +22,14 @@ namespace PhoneBox.TapiService
         {
             _eventDispatcherFactory = eventDispatcherFactory;
             _logger = logger;
-            _callNotification = new TapiEventNotificationSink();
+            _callNotificationSink = new TapiEventNotificationSink();
         }
 
         Task IHostedService.StartAsync(CancellationToken cancellationToken)
         {
             _tapiClient = new TAPIClass();
             _tapiClient.Initialize();
-            _tapiClient.ITTAPIEventNotification_Event_Event += _callNotification.Event;
+            _tapiClient.ITTAPIEventNotification_Event_Event += _callNotificationSink.Event;
             _tapiClient.EventFilter = (int)(
                 TAPI_EVENT.TE_CALLNOTIFICATION |
                 TAPI_EVENT.TE_CALLSTATE |
@@ -43,31 +44,41 @@ namespace PhoneBox.TapiService
 
         Task IHostedService.StopAsync(CancellationToken cancellationToken)
         {
-            _tapiClient!.ITTAPIEventNotification_Event_Event -= _callNotification!.Event;
-            _tapiClient!.Shutdown();
+            TAPIClass client = GetClientSafe();
+            client.ITTAPIEventNotification_Event_Event -= _callNotificationSink!.Event;
+            client.Shutdown();
             return Task.CompletedTask;
         }
 
-        void ITelephonyConnector.Subscribe(CallSubscriber subscriber)
+        void ITelephonyConnector.Subscribe(CallSubscriberConnection connection)
         {
+            CallSubscriber subscriber = connection.Subscriber;
             ITAddress? tapiAddress = FindTapiAddressForSubscriber(subscriber);
             if (tapiAddress == null)
             {
-                // Boom?
+                throw new InvalidOperationException($"Could not resolve TAPI address by phone number: {subscriber.PhoneNumber}");
+            }
+
+            if (_callNotificationSink.IsRegistered(tapiAddress))
+            {
+                _callNotificationSink.AddConnectionToSubscription(connection);
             }
             else
             {
-                _tapiClient!.RegisterCallNotifications(tapiAddress, fMonitor: true, fOwner: true, lMediaTypes: TapiConstants.TAPIMEDIATYPE_AUDIO, lCallbackInstance: 0);
-
+                int subscriptionId = GetClientSafe().RegisterCallNotifications(tapiAddress, fMonitor: true, fOwner: true, lMediaTypes: TapiConstants.TAPIMEDIATYPE_AUDIO, lCallbackInstance: 0);
                 ITelephonyEventDispatcher eventDispatcher = _eventDispatcherFactory.Create(subscriber);
-                _callNotification.AddAddressRegistration(tapiAddress, subscriber, eventDispatcher);
+                _callNotificationSink.AddSubscriber(tapiAddress, connection, eventDispatcher, subscriptionId);
             }
+        }
 
+        void ITelephonyConnector.Unsubscribe(CallSubscriberConnection connection)
+        {
+            _callNotificationSink.RemoveSubscriber(connection, GetClientSafe());
         }
 
         private ITAddress? FindTapiAddressForSubscriber(CallSubscriber subscriber)
         {
-            IEnumAddress addresses = _tapiClient!.EnumerateAddresses();
+            IEnumAddress addresses = GetClientSafe().EnumerateAddresses();
             uint fetched = 0;
             do
             {
@@ -91,19 +102,62 @@ DialableAddress: {DialableAddress}", addressType, address.ServiceProviderName, a
             return null;
         }
 
+        private TAPIClass GetClientSafe()
+        {
+            if (_tapiClient == null)
+                throw new InvalidOperationException("Tapi client not initialized");
+
+            return _tapiClient;
+        }
+
         private sealed class TapiEventNotificationSink : ITTAPIEventNotification
         {
-            private readonly IDictionary<string, TapiAddressSubscription> _registrations;
+            private readonly IDictionary<string, TapiAddressSubscription> _addressSubscriptionMap;
+            private readonly IDictionary<string, TapiAddressSubscription> _subscriberAddressMap;
 
             public TapiEventNotificationSink()
             {
-                _registrations = new SortedDictionary<string, TapiAddressSubscription>();
+                _addressSubscriptionMap = new SortedDictionary<string, TapiAddressSubscription>();
+                _subscriberAddressMap = new Dictionary<string, TapiAddressSubscription>();
             }
 
-            public void AddAddressRegistration(ITAddress address, CallSubscriber subscriber, ITelephonyEventDispatcher eventDispatcher)
+            public bool IsRegistered(ITAddress tapiAddress) => _addressSubscriptionMap.ContainsKey(tapiAddress.AddressName);
+            
+            public void AddConnectionToSubscription(CallSubscriberConnection connection)
             {
-                var addressRegistration = new TapiAddressSubscription(address, subscriber, eventDispatcher);
-                _registrations.Add(address.AddressName, addressRegistration);
+                TapiAddressSubscription subscription = GetSubscription(connection.Subscriber);
+                subscription.Connections.Add(connection);
+            }
+
+            public void AddSubscriber(ITAddress address, CallSubscriberConnection connection, ITelephonyEventDispatcher eventDispatcher, int subscriptionId)
+            {
+                string addressName = address.AddressName;
+                if (_addressSubscriptionMap.ContainsKey(addressName))
+                {
+                    throw new InvalidOperationException(@$"Address already registered: {addressName}
+ConnectionId: {connection.ConnectionId}
+SubscriberPhoneNumber: {connection.Subscriber.PhoneNumber}");
+                }
+
+                var addressRegistration = new TapiAddressSubscription(address, eventDispatcher, subscriptionId, connection);
+                _addressSubscriptionMap.Add(addressName, addressRegistration);
+                _subscriberAddressMap.Add(connection.Subscriber.PhoneNumber, addressRegistration);
+            }
+
+            public void RemoveSubscriber(CallSubscriberConnection connection, ITTAPI client)
+            {
+                CallSubscriber subscriber = connection.Subscriber;
+                TapiAddressSubscription subscription = GetSubscription(subscriber);
+                if (subscription.Connections.Count < 2)
+                {
+                    client.UnregisterNotifications(subscription.SubscriptionId);
+                    _subscriberAddressMap.Remove(subscriber.PhoneNumber);
+                    _addressSubscriptionMap.Remove(subscription.AddressName);
+                }
+                else
+                {
+                    subscription.Connections.Remove(connection);
+                }
             }
 
             public async void Event(TAPI_EVENT tapiEvent, object pEvent)
@@ -119,7 +173,7 @@ DialableAddress: {DialableAddress}", addressType, address.ServiceProviderName, a
             private async Task PublishCallStateEvent(ITCallStateEvent stateEvent)
             {
                 ITCallInfo call = stateEvent.Call;
-                if (!_registrations.TryGetValue(call.Address.AddressName, out TapiAddressSubscription registration))
+                if (!_addressSubscriptionMap.TryGetValue(call.Address.AddressName, out TapiAddressSubscription registration))
                     return;
 
                 string phoneNumber = call.CallInfoString[CALLINFO_STRING.CIS_CALLERIDNUMBER];
@@ -134,19 +188,29 @@ DialableAddress: {DialableAddress}", addressType, address.ServiceProviderName, a
                         break;
                 }
             }
+
+            private TapiAddressSubscription GetSubscription(CallSubscriber subscriber)
+            {
+                if (!_subscriberAddressMap.TryGetValue(subscriber.PhoneNumber, out TapiAddressSubscription subscription))
+                    throw new InvalidOperationException($"No subscriptions registered for phone number: {subscriber.PhoneNumber}");
+
+                return subscription;
+            }
         }
 
         private readonly struct TapiAddressSubscription
         {
             public string AddressName { get; }
-            public CallSubscriber Subscriber { get; }
             public ITelephonyEventDispatcher Publisher { get; }
+            public int SubscriptionId { get; }
+            public ICollection<CallSubscriberConnection> Connections { get; }
 
-            public TapiAddressSubscription(ITAddress address, CallSubscriber subscriber, ITelephonyEventDispatcher publisher)
+            public TapiAddressSubscription(ITAddress address, ITelephonyEventDispatcher publisher, int subscriptionId, CallSubscriberConnection connection)
             {
                 AddressName = address.AddressName;
-                Subscriber = subscriber;
                 Publisher = publisher;
+                SubscriptionId = subscriptionId;
+                Connections = new Collection<CallSubscriberConnection> { connection };
             }
         }
     }
