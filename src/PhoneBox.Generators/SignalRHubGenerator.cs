@@ -61,7 +61,7 @@ namespace PhoneBox.Generators
             ReportOpenApiErrors(context, container.Path, container.Diagnostic);
 
             string? @namespace = configuredNamespace ?? rootNamespace ?? assemblyName;
-            ICollection<OpenApiHubModel> models = CollectModels(container.Document.Components.Schemas).ToArray();
+            ICollection<OpenApiHubModel> models = CollectModels(context, container.Path, container.Document.Components.Schemas).ToArray();
             if (models.Any() && outputFilter.HasFlag(SignalRHubGenerationOutputs.Model))
             {
                 foreach (OpenApiHubModel model in models)
@@ -81,7 +81,7 @@ namespace PhoneBox.Generators
                     AddInterface(context, interfaceName, @namespace, hubGroup);
 
                 if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Implementation))
-                    AddImplementation(context, className, interfaceName, @namespace, contractNamespace, hubGroup);
+                    AddImplementation(context, className, interfaceName, @namespace, contractNamespace);
             }
 
             if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Implementation))
@@ -115,7 +115,7 @@ namespace PhoneBox.Generators
             }
         }
 
-        private static void AddImplementation(SourceProductionContext context, string className, string interfaceName, string? @namespace, string? contractNamespace, IEnumerable<OpenApiHubMethod> methods)
+        private static void AddImplementation(SourceProductionContext context, string className, string interfaceName, string? @namespace, string? contractNamespace)
         {
             ICollection<string> usings = new SortedSet<string>();
             usings.Add("Microsoft.AspNetCore.SignalR");
@@ -233,7 +233,7 @@ namespace Microsoft.AspNetCore.Builder
             return content;
         }
 
-        private static IEnumerable<OpenApiHubModel> CollectModels(IDictionary<string, OpenApiSchema> schemas)
+        private static IEnumerable<OpenApiHubModel> CollectModels(SourceProductionContext context, string path, IDictionary<string, OpenApiSchema> schemas)
         {
             foreach (KeyValuePair<string, OpenApiSchema> schemaPair in schemas)
             {
@@ -254,13 +254,12 @@ namespace Microsoft.AspNetCore.Builder
                         enumNameMap.AddRange(enumVarNamesArray.Select((x, i) => new KeyValuePair<int, string>(i, ParseEnumVarName(x))));
                     }
 
-                    IList<(int index, string? name, int value)> enumMembers = modelSchema.Enum.Select(ParseEnumMember).ToArray();
-
                     for (int i = 0; i < modelSchema.Enum.Count; i++)
                     {
                         IOpenApiAny enumMember = modelSchema.Enum[i];
-                        OpenApiHubEnumMember member = ParseEnumMember(enumMember, i, enumNameMap);
-                        @enum.Members.Add(member);
+                        OpenApiHubEnumMember? member = ParseEnumMember(context, path, enumMember, i, enumNameMap);
+                        if (member != null)
+                            @enum.Members.Add(member.Value);
                     }
                 }
                 else
@@ -372,26 +371,31 @@ namespace Microsoft.AspNetCore.Builder
             OpenApiStringReader reader = new OpenApiStringReader();
 
             // TODO: What happens if the yaml file does not represent an OpenAPI document. Exception?
-            OpenApiDocument document = reader.Read(text!.ToString(), out OpenApiDiagnostic diagnostic);
+            OpenApiDocument document = reader.Read(text.ToString(), out OpenApiDiagnostic diagnostic);
             return new OpenApiDocumentContainer(item.Path, item, document, diagnostic);
         }
 
         private static void ReportOpenApiErrors(SourceProductionContext context, string path, OpenApiDiagnostic diagnostic)
         {
             foreach (OpenApiError error in diagnostic.Errors)
-                ReportOpenApiError(context, path, error, DiagnosticSeverity.Error);
+                ReportOpenApiError(DiagnosticSeverity.Error, error, path, context);
 
             foreach (OpenApiError warning in diagnostic.Warnings)
-                ReportOpenApiError(context, path, warning, DiagnosticSeverity.Warning);
+                ReportOpenApiError(DiagnosticSeverity.Warning, warning, path, context);
         }
 
-        private static void ReportOpenApiError(SourceProductionContext context, string path, OpenApiError error, DiagnosticSeverity severity)
+        private static void ReportOpenApiError(DiagnosticSeverity severity, OpenApiError error, string path, SourceProductionContext context)
+        {
+            ReportDiagnostic(severity, ErrorCode.OpenApi, error.Pointer, error.Message, context, path);
+        }
+
+        private static void ReportDiagnostic(DiagnosticSeverity severity, string id, string title, string message, SourceProductionContext context, string path)
         {
             DiagnosticDescriptor descriptor = new DiagnosticDescriptor
             (
-                id: $"{nameof(SignalRHubGenerator)}001"
-              , title: error.Pointer
-              , messageFormat: error.Message
+                id: id
+              , title: title
+              , messageFormat: message
               , category: nameof(SignalRHubGenerator)
               , defaultSeverity: severity
               , isEnabledByDefault: true
@@ -448,31 +452,17 @@ namespace Microsoft.AspNetCore.Builder
             return value;
         }
 
-        private static (int index, string? name, int value) ParseEnumMember(IOpenApiAny enumMember, int index)
-        {
-            switch (enumMember)
-            {
-                case OpenApiInteger @int:
-                    int intValue = @int.Value;
-                    return (index: index, name: null, value: intValue);
-
-                case OpenApiString @string:
-                    return (index: index, name: @string.Value, value: index);
-
-                default: 
-                    throw new ArgumentOutOfRangeException(nameof(enumMember), enumMember, null);
-            }
-        }
-
-        private static OpenApiHubEnumMember ParseEnumMember(IOpenApiAny enumMember, int index, IDictionary<int, string> enumNameMap)
+        private static OpenApiHubEnumMember? ParseEnumMember(SourceProductionContext context, string path, IOpenApiAny enumMember, int index, IDictionary<int, string> enumNameMap)
         {
             switch (enumMember)
             {
                 case OpenApiInteger @int:
                     int intValue = @int.Value;
                     if (!enumNameMap.TryGetValue(index, out string name))
-                        throw new InvalidOperationException($"Missing enum name for value '{intValue}'. Specify it using the {EnumVarNamesExtension} property.");
-
+                    {
+                        ReportDiagnostic(DiagnosticSeverity.Error, ErrorCode.OpenApi, "OpenAPI document parsing error", $"Missing enum name for value '{intValue}'. Specify it using the {EnumVarNamesExtension} property.", context, path);
+                        return null;
+                    }
                     return new OpenApiHubEnumMember(name, intValue);
 
                 case OpenApiString @string:
@@ -487,15 +477,6 @@ namespace Microsoft.AspNetCore.Builder
             switch (value)
             {
                 case OpenApiString @string: return @string.Value;
-                default: throw new ArgumentOutOfRangeException(nameof(value), value, null);
-            }
-        }
-
-        private static int ParseEnumValue(IOpenApiAny value)
-        {
-            switch (value)
-            {
-                case OpenApiInteger @int: return @int.Value;
                 default: throw new ArgumentOutOfRangeException(nameof(value), value, null);
             }
         }
@@ -549,6 +530,13 @@ namespace Microsoft.AspNetCore.Builder
             }
 
             return new String(chars);
+        }
+
+        private static class ErrorCode
+        {
+            private const string Prefix = "HUBGEN";
+            
+            public const string OpenApi = $"{Prefix}001";
         }
 
         private readonly struct OpenApiDocumentContainer
