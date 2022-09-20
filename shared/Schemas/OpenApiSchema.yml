@@ -83,6 +83,7 @@ components:
         - None
         - Connected
         - Disconnected
+      type: string
     CallHangUpReason:
       enum:
         - 0
