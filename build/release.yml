@@ -14,9 +14,6 @@ jobs:
   pool:
     vmImage: ubuntu-latest
   steps:
-  # The default behavior is as if checkout: self were the first step, and the current repository is checked out.
-  # We don't need sources, therefore, disable it
-  - checkout: none
   - powershell: |
       Write-Host "##vso[build.updatebuildnumber]$(resources.pipeline.CI.runName)"
       Write-Host "##vso[task.setvariable variable=IsPreRelease]$('$(resources.pipeline.CI.runName)'.Contains('-'))"
@@ -57,9 +54,11 @@ jobs:
       tag: v$(resources.pipeline.CI.runName)
       title: v$(resources.pipeline.CI.runName)
       isPreRelease: $(IsPreRelease)
+      isDraft: $(IsPreview)
       assets: |
         $(Pipeline.Workspace)/CI/NuGet packages/*.nupkg
         $(Pipeline.Workspace)/CI/Publish output*/*.zip
+        $(Build.SourcesDirectory)/shared/Schemas/OpenApiSchema.yml
       changeLogCompareToRelease: lastNonDraftRelease
       changeLogType: commitBased
       changeLogLabels: |
@@ -67,4 +66,3 @@ jobs:
           { "label" : "bug", "displayName" : "Fixes", "state" : "closed" },
           { "label" : "enhancement", "displayName": "Enhancements", "state" : "closed" }
         ]
-    condition: and(succeeded(), eq(variables['IsPreview'], 'False'))
