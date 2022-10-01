@@ -1,13 +1,11 @@
-﻿using System;
-
-namespace PhoneBox.Generators
+﻿namespace PhoneBox.Generators
 {
-    [AttributeUsage(AttributeTargets.Assembly)]
-    internal sealed class SignalRHubGenerationAttribute : Attribute
+    [global::System.AttributeUsage(global::System.AttributeTargets.Assembly)]
+    internal sealed class SignalRHubGenerationAttribute : global::System.Attribute
     {
-        public SignalRHubGenerationOutputs OutputFilter { get; }
+        public global::PhoneBox.Generators.SignalRHubGenerationOutputs OutputFilter { get; }
 
-        public SignalRHubGenerationAttribute(SignalRHubGenerationOutputs outputFilter = SignalRHubGenerationOutputs.All)
+        public SignalRHubGenerationAttribute(global::PhoneBox.Generators.SignalRHubGenerationOutputs outputFilter = global::PhoneBox.Generators.SignalRHubGenerationOutputs.All)
         {
             OutputFilter = outputFilter;
         }

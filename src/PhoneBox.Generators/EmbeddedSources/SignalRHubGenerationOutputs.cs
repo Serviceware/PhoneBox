@@ -1,8 +1,6 @@
-﻿using System;
-
-namespace PhoneBox.Generators
+﻿namespace PhoneBox.Generators
 {
-    [Flags]
+    [global::System.Flags]
     internal enum SignalRHubGenerationOutputs
     {
         None = 0,
