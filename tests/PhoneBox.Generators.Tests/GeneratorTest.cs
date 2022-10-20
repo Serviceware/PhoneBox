@@ -43,10 +43,10 @@ namespace PhoneBox.Generators.Tests
               , assertOutputs: true
               , expectedFiles: new[]
                 {
-                    "SignalRHubGenerationAttribute.generated.cs"
-                  , "SignalRHubGenerationOutputs.generated.cs"
-                  , "TelephonyHub.generated.cs"
-                  , "HubEndpointRouteBuilderExtensions.generated.cs"
+                    "SignalRHubGenerationAttribute.g.cs"
+                  , "SignalRHubGenerationOutputs.g.cs"
+                  , "TelephonyHub.g.cs"
+                  , "HubEndpointRouteBuilderExtensions.g.cs"
                 }
               , MetadataReference.CreateFromFile(typeof(Hub).Assembly.Location)
               , MetadataReference.CreateFromFile(typeof(HubEndpointConventionBuilder).Assembly.Location)
@@ -63,13 +63,13 @@ namespace PhoneBox.Generators.Tests
           , assertOutputs: assertOutputs
           , expectedFiles: new[]
             {
-                "SignalRHubGenerationAttribute.generated.cs"
-              , "SignalRHubGenerationOutputs.generated.cs"
-              , "CallConnectedEvent.generated.cs"
-              , "CallDisconnectedEvent.generated.cs"
-              , "CallState.generated.cs"
-              , "CallHangUpReason.generated.cs"
-              , "ITelephonyHub.generated.cs"
+                "SignalRHubGenerationAttribute.g.cs"
+              , "SignalRHubGenerationOutputs.g.cs"
+              , "CallConnectedEvent.g.cs"
+              , "CallDisconnectedEvent.g.cs"
+              , "CallState.g.cs"
+              , "CallHangUpReason.g.cs"
+              , "ITelephonyHub.g.cs"
             }
         );
 

@@ -115,7 +115,7 @@ namespace PhoneBox.Generators
                 if (extensionIndex < 0) 
                     extensionIndex = fileName.Length;
 
-                fileName = fileName.Insert(extensionIndex, ".generated");
+                fileName = fileName.Insert(extensionIndex, ".g");
                 
                 string content;
                 using (Stream stream = ThisAssembly.GetManifestResourceStream(resourceName)!)
@@ -134,7 +134,7 @@ namespace PhoneBox.Generators
 
         private static void AddImplementation(SourceProductionContext context, string className, string interfaceName, string @namespace, string? contractNamespace)
         {
-            string fileName = $"{className}.generated.cs";
+            string fileName = $"{className}.g.cs";
             string content = $@"{GeneratedCodeHeader}
 
 namespace {@namespace}
@@ -148,7 +148,7 @@ namespace {@namespace}
 
         private static void AddInterface(SourceProductionContext context, string interfaceName, string @namespace, string? contractNamespace, IEnumerable<OpenApiHubMethod> methods)
         {
-            string fileName = $"{interfaceName}.generated.cs";
+            string fileName = $"{interfaceName}.g.cs";
             string methodsStr = String.Join(Environment.NewLine, methods.Select(x => GenerateInterfaceMethod(x, contractNamespace ?? @namespace)));
             string content = $@"{GeneratedCodeHeader}
 
@@ -166,7 +166,7 @@ namespace {@namespace}
         private static void AddModel(SourceProductionContext context, string @namespace, OpenApiHubModel model)
         {
             string content = GenerateModel(@namespace, model);
-            context.AddSource($"{model.Name}.generated.cs", content);
+            context.AddSource($"{model.Name}.g.cs", content);
         }
 
         private static string GenerateModel(string @namespace, OpenApiHubModel model)
@@ -234,7 +234,7 @@ namespace Microsoft.AspNetCore.Builder
 {methodsStr}
     }}
 }}";
-            context.AddSource("HubEndpointRouteBuilderExtensions.generated.cs", content);
+            context.AddSource("HubEndpointRouteBuilderExtensions.g.cs", content);
         }
 
         private static string GenerateInterfaceMethod(OpenApiHubMethod method, string @namespace)
