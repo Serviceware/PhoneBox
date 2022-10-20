@@ -37,7 +37,7 @@ namespace PhoneBox.Generators.Tests
 
             _ = this.RunGenerator
             (
-                filter: SignalRHubGenerationOutputs.Implementation
+                filter: "PhoneBox.Generators.SignalRHubGenerationOutputs.Implementation"
               , metadataNamespace: null
               , metadataContractNamespace: "PhoneBox.Abstractions"
               , assertOutputs: true
@@ -57,7 +57,7 @@ namespace PhoneBox.Generators.Tests
 
         private Compilation CompileContracts(bool assertOutputs) => this.RunGenerator
         (
-            filter: SignalRHubGenerationOutputs.Model | SignalRHubGenerationOutputs.Interface
+            filter: "PhoneBox.Generators.SignalRHubGenerationOutputs.Model | PhoneBox.Generators.SignalRHubGenerationOutputs.Interface"
           , metadataNamespace: "PhoneBox.Abstractions"
           , metadataContractNamespace: null
           , assertOutputs: assertOutputs
@@ -73,13 +73,9 @@ namespace PhoneBox.Generators.Tests
             }
         );
 
-        private Compilation RunGenerator(SignalRHubGenerationOutputs filter, string? metadataNamespace, string? metadataContractNamespace, bool assertOutputs, IReadOnlyList<string> expectedFiles, params MetadataReference[] additionalReferences)
+        private Compilation RunGenerator(string filter, string? metadataNamespace, string? metadataContractNamespace, bool assertOutputs, IReadOnlyList<string> expectedFiles, params MetadataReference[] additionalReferences)
         {
-            IEnumerable<string> filterFlags = Enum.GetValues<SignalRHubGenerationOutputs>()
-                                                  .Where(x => filter.HasFlag(x))
-                                                  .Select(x => $"{typeof(SignalRHubGenerationOutputs)}.{x}");
-            string filterFlagsStr = String.Join(" | ", filterFlags);
-            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText($"[assembly: {typeof(SignalRHubGenerationAttribute)}({filterFlagsStr})]");
+            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText($"[assembly: PhoneBox.Generators.SignalRHubGenerationAttribute({filter})]");
             Assembly netStandardAssembly = AppDomain.CurrentDomain.GetAssemblies().Single(x => x.GetName().Name == "netstandard");
             Assembly systemRuntimeAssembly = AppDomain.CurrentDomain.GetAssemblies().Single(x => x.GetName().Name == "System.Runtime");
             CSharpCompilation inputCompilation = CSharpCompilation.Create(null)

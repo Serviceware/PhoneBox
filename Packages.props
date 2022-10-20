@@ -5,7 +5,7 @@
     <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1"   />
     <GlobalPackageReference Include="Nerdbank.GitVersioning"      Version="3.4.255" />
 
-    <PackageReference Update="coverlet.collector"                            Version="$(CoverletVersion)" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
+    <PackageReference Update="coverlet.collector"                            Version="$(CoverletVersion)" />
     <PackageReference Update="Dibix.Testing"                                 Version="$(DibixTestingVersion)" />
     <PackageReference Update="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCoreAuthenticationJwtBearerVersion)" />
     <PackageReference Update="Microsoft.AspNetCore.SignalR.Client"           Version="$(MicrosoftAspNetCoreSignalRClientVersion)" />

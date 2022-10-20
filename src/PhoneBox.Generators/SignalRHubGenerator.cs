@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -40,14 +41,17 @@ namespace PhoneBox.Generators
         {
             IncrementalValueProvider<string?> rootNamespace = context.AnalyzerConfigOptionsProvider.Select((x, _) => GetRootNamespace(x));
             IncrementalValueProvider<string?> assemblyName = context.CompilationProvider.Select((x, _) => x.AssemblyName);
-            IncrementalValuesProvider<SignalRHubGenerationOutputs?> outputFilter = context.SyntaxProvider.CreateSyntaxProvider(IsAssemblyAttribute, CollectOutputFilter);
-            IncrementalValuesProvider<OpenApiDocumentContainer> documents = context.AdditionalTextsProvider.Where(static file => file.Path.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))
+            IncrementalValueProvider<ImmutableArray<SignalRHubGenerationOutputs?>> outputFilter = context.SyntaxProvider
+                                                                                                         .CreateSyntaxProvider(IsAssemblyAttribute, CollectOutputFilter)
+                                                                                                         .Collect();
+            IncrementalValuesProvider<OpenApiDocumentContainer> documents = context.AdditionalTextsProvider
+                                                                                   .Where(static file => file.Path.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))
                                                                                    .Select(LoadYamlFile)
                                                                                    .Where(x => x.HasValue)
                                                                                    .Select((x, _) => x!.Value);
 
             var all = documents.Combine(context.AnalyzerConfigOptionsProvider)
-                               .Combine(outputFilter.Collect())
+                               .Combine(outputFilter)
                                .Combine(rootNamespace)
                                .Combine(assemblyName)
                                .Select(static (x, _) => new

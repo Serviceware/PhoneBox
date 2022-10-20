@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\PhoneBox.Generators\PhoneBox.Generators.csproj" PrivateAssets="all" OutputItemType="Analyzer" />
+    <ProjectReference Include="..\..\src\PhoneBox.Generators\PhoneBox.Generators.csproj" />
   </ItemGroup>
 
 </Project>
