@@ -7,18 +7,20 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace PhoneBox.Abstractions
+namespace PhoneBox.Generators.Tests
 {
     [global::System.CodeDom.Compiler.GeneratedCode("PhoneBox.Generators", "%GENERATORVERSION%")]
     [global::System.Diagnostics.DebuggerNonUserCode]
     [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public sealed class CallConnectedEvent
+    internal sealed class WebHookCallDisconnectedRequest
     {
-        public string PhoneNumber { get; }
+        public string FromPhoneNumber { get; }
+        public string ToPhoneNumber { get; }
 
-        public CallConnectedEvent(string phoneNumber)
+        public WebHookCallDisconnectedRequest(string fromPhoneNumber, string toPhoneNumber)
         {
-            PhoneNumber = phoneNumber;
+            FromPhoneNumber = fromPhoneNumber;
+            ToPhoneNumber = toPhoneNumber;
         }
     }
 }

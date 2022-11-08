@@ -12,11 +12,11 @@ namespace Microsoft.AspNetCore.Builder
     [global::System.CodeDom.Compiler.GeneratedCode("PhoneBox.Generators", "%GENERATORVERSION%")]
     [global::System.Diagnostics.DebuggerNonUserCode]
     [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    internal static class HubEndpointRouteBuilderExtensions
+    internal static class HubExtensions
     {
-        public static global::Microsoft.AspNetCore.Builder.HubEndpointConventionBuilder MapHub<THub>(this global::Microsoft.AspNetCore.Routing.IEndpointRouteBuilder endpoints) where THub : global::PhoneBox.Generators.Tests.TelephonyHub
+        public static global::Microsoft.AspNetCore.Builder.HubEndpointConventionBuilder MapGeneratedHub<THub>(this global::Microsoft.AspNetCore.Routing.IEndpointRouteBuilder endpoints) where THub : global::PhoneBox.Generators.Tests.SignalR.TelephonyHub
         {
-            return endpoints.MapHub<THub>("/TelephonyHub");
+            return global::Microsoft.AspNetCore.Builder.HubEndpointRouteBuilderExtensions.MapHub<THub>(endpoints, "/TelephonyHub");
         }
     }
 }

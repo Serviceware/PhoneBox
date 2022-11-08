@@ -20,10 +20,10 @@ using Microsoft.OpenApi.Readers;
 namespace PhoneBox.Generators
 {
     [Generator]
-    public sealed class SignalRHubGenerator : IIncrementalGenerator
+    public sealed class OpenApiGenerator : IIncrementalGenerator
     {
-        private static readonly Assembly ThisAssembly = typeof(SignalRHubGenerator).Assembly;
-        private static readonly string AttributeTypeName = typeof(SignalRHubGenerationAttribute).FullName;
+        private static readonly Assembly ThisAssembly = typeof(OpenApiGenerator).Assembly;
+        private static readonly string AttributeTypeName = typeof(OpenApiGenerationAttribute).FullName;
         private static readonly string DefaultAnnotationsStr = ComputeDefaultAnnotationsStr();
         private static readonly string GeneratedCodeAnnotationStr = ComputeGeneratedCodeAnnotationStr();
         private const string EmbeddedSourcePrefix = $"{nameof(PhoneBox)}.{nameof(Generators)}.EmbeddedSources";
@@ -71,36 +71,74 @@ namespace PhoneBox.Generators
         {
             AnalyzerConfigOptions options = analyzerConfigOptionsProvider.GetOptions(container.SourceFile);
             string? configuredNamespace = GetMetadataProperty(options, "build_metadata.none.Namespace");
+            string? hubNamespace = GetMetadataProperty(options, "build_metadata.none.HubNamespace");
             string? contractNamespace = GetMetadataProperty(options, "build_metadata.none.ContractNamespace");
 
             ReportOpenApiErrors(context, container.Path, container.Diagnostic);
 
-            string @namespace = configuredNamespace ?? rootNamespace ?? assemblyName ?? "PhoneBox.Generated";
-            ICollection<OpenApiHubModel> models = CollectModels(context, container.Path, container.Document.Components.Schemas).ToArray();
-            if (models.Any() && outputFilter.HasFlag(SignalRHubGenerationOutputs.Model))
+            string defaultNamespace = configuredNamespace ?? rootNamespace ?? assemblyName ?? "PhoneBox.Generated";
+            IDictionary<string, OpenApiModel> modelMap = CollectModels(context, container.Path, container.Document.Components.Schemas).ToDictionary(x => x.Name);
+            IDictionary<OpenApiOperationGroupKey, OpenApiOperationGroup> operationGroupMap = new Dictionary<OpenApiOperationGroupKey, OpenApiOperationGroup>();
+            ICollection<OpenApiOperationGroup> operationGroups = operationGroupMap.Values;
+            CollectOperations(container, operationGroupMap, modelMap);
+            
+            foreach (OpenApiModel model in modelMap.Values)
             {
-                foreach (OpenApiHubModel model in models)
+                if (model.Usage == OpenApiModelUsage.None)
+                    continue;
+
+                if (outputFilter.HasFlag(model.Usage == OpenApiModelUsage.Service ? SignalRHubGenerationOutputs.Implementation : SignalRHubGenerationOutputs.Model)) 
+                    AddModel(context, defaultNamespace, model);
+            }
+
+            foreach (OpenApiOperationGroup operationGroup in operationGroups)
+            {
+                bool isWebSocket = operationGroup.IsWebSocket;
+                
+                string interfaceName;
+                string className;
+                if (isWebSocket)
                 {
-                    AddModel(context, @namespace, model);
+                    string hubName = NormalizeHubName(operationGroup.Name);
+                    interfaceName = $"I{hubName}Hub";
+                    className = $"{hubName}Hub";
+                }
+                else
+                {
+                    interfaceName = $"I{operationGroup.Name}";
+                    className = operationGroup.Name;
+                }
+
+                if (outputFilter.HasFlag(isWebSocket ? SignalRHubGenerationOutputs.Model : SignalRHubGenerationOutputs.Implementation))
+                    AddInterface(context, interfaceName, defaultNamespace, contractNamespace, isWebSocket, operationGroup.Operations, modelMap);
+
+                if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Implementation))
+                {
+                    if (isWebSocket)
+                    {
+                        AddHub(context, className, hubNamespace, interfaceName, defaultNamespace, contractNamespace);
+                    }
+                    else
+                    {
+                        AddService(context, className, interfaceName, defaultNamespace, isWebSocket);
+                    }
                 }
             }
 
-            var hubGroups = CollectHubMethods(container).GroupBy(x => x.Hub).ToArray();
-            foreach (IGrouping<OpenApiHub, OpenApiHubMethod> hubGroup in hubGroups)
-            {
-                string hubName = NormalizeHubName(hubGroup.Key.Name);
-                string interfaceName = $"I{hubName}Hub";
-                string className = $"{hubName}Hub";
-
-                if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Interface))
-                    AddInterface(context, interfaceName, @namespace, contractNamespace, hubGroup);
-
-                if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Implementation))
-                    AddImplementation(context, className, interfaceName, @namespace, contractNamespace);
-            }
-
             if (outputFilter.HasFlag(SignalRHubGenerationOutputs.Implementation))
-                AddExtensions(context, @namespace, hubGroups.Select(x => x.Key));
+            {
+                ICollection<OpenApiOperationGroup> hubs = operationGroups.Where(x => x.IsWebSocket).ToArray();
+                if (hubs.Any())
+                {
+                    AddHubExtensions(context, defaultNamespace, hubNamespace, hubs);
+                }
+
+                ICollection<OpenApiOperationGroup> endpoints = operationGroups.Where(x => !x.IsWebSocket).ToArray();
+                if (endpoints.Any())
+                {
+                    AddEndpointExtensions(context, defaultNamespace, contractNamespace, endpoints, modelMap);
+                }
+            }
         }
 
         private static void RegisterPostInitializationOutput(IncrementalGeneratorPostInitializationContext context)
@@ -132,30 +170,49 @@ namespace PhoneBox.Generators
             }
         }
 
-        private static void AddImplementation(SourceProductionContext context, string className, string interfaceName, string @namespace, string? contractNamespace)
+        private static void AddService(SourceProductionContext context, string className, string interfaceName, string defaultNamespace, bool isWebSocket)
         {
+            string visibility = isWebSocket ? "public" : "internal";
             string fileName = $"{className}.g.cs";
             string content = $@"{GeneratedCodeHeader}
 
-namespace {@namespace}
+namespace {defaultNamespace}
 {{
-    public partial class {className} : global::Microsoft.AspNetCore.SignalR.Hub<global::{contractNamespace ?? @namespace}.{interfaceName}>
+    {visibility} partial class {className} : global::{defaultNamespace}.{interfaceName}
     {{
     }}
 }}";
             context.AddSource(fileName, content);
         }
 
-        private static void AddInterface(SourceProductionContext context, string interfaceName, string @namespace, string? contractNamespace, IEnumerable<OpenApiHubMethod> methods)
+        private static void AddHub(SourceProductionContext context, string className, string? hubNamespace, string interfaceName, string defaultNamespace, string? contractNamespace)
         {
-            string fileName = $"{interfaceName}.g.cs";
-            string methodsStr = String.Join(Environment.NewLine, methods.Select(x => GenerateInterfaceMethod(x, contractNamespace ?? @namespace)));
+            string fileName = $"{className}.g.cs";
             string content = $@"{GeneratedCodeHeader}
 
-namespace {@namespace}
+namespace {hubNamespace ?? defaultNamespace}
+{{
+    public partial class {className} : global::Microsoft.AspNetCore.SignalR.Hub<global::{contractNamespace ?? defaultNamespace}.{interfaceName}>
+    {{
+    }}
+}}";
+            context.AddSource(fileName, content);
+        }
+
+        private static void AddInterface(SourceProductionContext context, string interfaceName, string defaultNamespace, string? contractNamespace, bool isWebSocket, IEnumerable<OpenApiOperationDescriptor> methods, IDictionary<string, OpenApiModel> modelMap)
+        {
+            string visibility = isWebSocket ? "public" : "internal";
+            string fileName = $"{interfaceName}.g.cs";
+
+            string CollectMethod(OpenApiOperationDescriptor method) => isWebSocket ? GenerateHubInterfaceMethod(method, defaultNamespace, contractNamespace, modelMap) : GenerateServiceInterfaceMethod(method, defaultNamespace, contractNamespace, modelMap);
+
+            string methodsStr = String.Join(Environment.NewLine, methods.Select(CollectMethod));
+            string content = $@"{GeneratedCodeHeader}
+
+namespace {defaultNamespace}
 {{
 {GeneratedCodeAnnotationStr}
-    public interface {interfaceName}
+    {visibility} interface {interfaceName}
     {{
 {methodsStr}
     }}
@@ -163,33 +220,34 @@ namespace {@namespace}
             context.AddSource(fileName, content);
         }
 
-        private static void AddModel(SourceProductionContext context, string @namespace, OpenApiHubModel model)
+        private static void AddModel(SourceProductionContext context, string defaultNamespace, OpenApiModel model)
         {
-            string content = GenerateModel(@namespace, model);
+            string content = GenerateModel(defaultNamespace, model);
             context.AddSource($"{model.Name}.g.cs", content);
         }
 
-        private static string GenerateModel(string @namespace, OpenApiHubModel model)
+        private static string GenerateModel(string defaultNamespace, OpenApiModel model)
         {
             switch (model)
             {
-                case OpenApiHubClass @class: return GenerateClass(@namespace, @class);
-                case OpenApiHubEnum @enum: return GenerateEnum(@namespace, @enum);
+                case OpenApiClass @class: return GenerateClass(defaultNamespace, @class);
+                case OpenApiEnum @enum: return GenerateEnum(defaultNamespace, @enum);
                 default: throw new ArgumentOutOfRangeException(nameof(model), model, null);
             }
         }
 
-        private static string GenerateClass(string @namespace, OpenApiHubClass @class)
+        private static string GenerateClass(string defaultNamespace, OpenApiClass @class)
         {
-            string propertiesStr = String.Join(Environment.NewLine, @class.Properties.Select(x => $"        public {x.TypeName.GetGlobalTypeName(@namespace)} {x.PropertyName} {{ get; }}"));
-            string ctorParametersStr = String.Join(", ", @class.Properties.Select(x => $"{x.TypeName.GetGlobalTypeName(@namespace)} {ToCamelCase(x.PropertyName)}"));
-            string ctorAssignmentsStr = String.Join(Environment.NewLine, @class.Properties.Select(x => $"            this.{x.PropertyName} = {ToCamelCase(x.PropertyName)};"));
+            string visibility = @class.Usage == OpenApiModelUsage.Service ? "internal" : "public";
+            string propertiesStr = String.Join(Environment.NewLine, @class.Properties.Select(x => $"        public {x.TypeName.GetGlobalTypeName(defaultNamespace)} {x.PropertyName} {{ get; }}"));
+            string ctorParametersStr = String.Join(", ", @class.Properties.Select(x => $"{x.TypeName.GetGlobalTypeName(defaultNamespace)} {ToCamelCase(x.PropertyName)}"));
+            string ctorAssignmentsStr = String.Join(Environment.NewLine, @class.Properties.Select(x => $"            {x.PropertyName} = {ToCamelCase(x.PropertyName)};"));
             string content = $@"{GeneratedCodeHeader}
 
-namespace {@namespace}
+namespace {defaultNamespace}
 {{
 {DefaultAnnotationsStr}
-    public sealed class {@class.Name}
+    {visibility} sealed class {@class.Name}
     {{
 {propertiesStr}
 
@@ -202,12 +260,12 @@ namespace {@namespace}
             return content;
         }
 
-        private static string GenerateEnum(string @namespace, OpenApiHubEnum @enum)
+        private static string GenerateEnum(string defaultNamespace, OpenApiEnum @enum)
         {
             string membersStr = String.Join($",{Environment.NewLine}", @enum.Members.Select(x => $"        {x.Name} = {x.Value}"));
             string content = $@"{GeneratedCodeHeader}
 
-namespace {@namespace}
+namespace {defaultNamespace}
 {{
 {GeneratedCodeAnnotationStr}
     public enum {@enum.Name}
@@ -218,18 +276,65 @@ namespace {@namespace}
             return content;
         }
 
-        private static void AddExtensions(SourceProductionContext context, string @namespace, IEnumerable<OpenApiHub> hubs)
+        private static void AddEndpointExtensions(SourceProductionContext context, string defaultNamespace, string? contractNamespace, ICollection<OpenApiOperationGroup> groups, IDictionary<string, OpenApiModel> modelMap)
         {
-            string methodsStr = String.Join($"{Environment.NewLine}{Environment.NewLine}", hubs.Select(x => @$"        public static global::Microsoft.AspNetCore.Builder.HubEndpointConventionBuilder MapHub<THub>(this global::Microsoft.AspNetCore.Routing.IEndpointRouteBuilder endpoints) where THub : global::{@namespace}.{x.Name}
+            string GenerateMapping(OpenApiOperationDescriptor operation)
+            {
+                string parametersStr = GenerateParameters(operation, defaultNamespace, contractNamespace, modelMap);
+                if (parametersStr.Length > 0)
+                    parametersStr = $"{parametersStr}, ";
+
+                string parameterNamesStr = String.Join(", ", operation.Parameters.Select(x => x.ParameterName));
+                if (parameterNamesStr.Length > 0)
+                    parameterNamesStr = $", {parameterNamesStr}";
+
+                return $"            yield return global::Microsoft.AspNetCore.Builder.EndpointRouteBuilderExtensions.MapPost(endpoints, \"{operation.Path}\", ({parametersStr}global::{defaultNamespace}.I{operation.Group.Name} handler, global::Microsoft.AspNetCore.Http.HttpContext context) => handler.{operation.MethodName}(context{parameterNamesStr}));";
+            }
+
+            string registrationsStr = String.Join(Environment.NewLine, groups.Select(x => $"            global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<global::{defaultNamespace}.I{x.Name}, global::{defaultNamespace}.{x.Name}>(services);"));
+            string mappingStr = String.Join(Environment.NewLine, groups.SelectMany(x => x.Operations).Select(GenerateMapping));
+            string content = $@"{GeneratedCodeHeader}
+
+namespace Microsoft.AspNetCore.Builder
+{{
+{DefaultAnnotationsStr}
+    internal static class EndpointExtensions
+    {{
+        public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection AddGeneratedEndpoints(this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
         {{
-            return endpoints.MapHub<THub>(""{x.Path}"");
+{registrationsStr}
+            return services;
+        }}
+
+        public static global::Microsoft.AspNetCore.Routing.IEndpointRouteBuilder AddGeneratedEndpoints(this global::Microsoft.AspNetCore.Routing.IEndpointRouteBuilder endpoints, string authorizationPolicyName = null)
+        {{
+            foreach (global::Microsoft.AspNetCore.Builder.RouteHandlerBuilder builder in global::Microsoft.AspNetCore.Builder.EndpointExtensions.AddGeneratedEndpoints(endpoints))
+            {{
+                global::Microsoft.AspNetCore.Builder.AuthorizationEndpointConventionBuilderExtensions.RequireAuthorization(builder, authorizationPolicyName);
+            }}
+            return endpoints;
+        }}
+        private static global::System.Collections.Generic.IEnumerable<global::Microsoft.AspNetCore.Builder.RouteHandlerBuilder> AddGeneratedEndpoints(this global::Microsoft.AspNetCore.Routing.IEndpointRouteBuilder endpoints)
+        {{
+{mappingStr}
+        }}
+    }}
+}}";
+            context.AddSource("EndpointExtensions.g.cs", content);
+        }
+
+        private static void AddHubExtensions(SourceProductionContext context, string defaultNamespace, string? hubNamespace, IEnumerable<OpenApiOperationGroup> groups)
+        {
+            string methodsStr = String.Join($"{Environment.NewLine}{Environment.NewLine}", groups.Select(x => @$"        public static global::Microsoft.AspNetCore.Builder.HubEndpointConventionBuilder MapGeneratedHub<THub>(this global::Microsoft.AspNetCore.Routing.IEndpointRouteBuilder endpoints) where THub : global::{hubNamespace ?? defaultNamespace}.{x.Name}
+        {{
+            return global::Microsoft.AspNetCore.Builder.HubEndpointRouteBuilderExtensions.MapHub<THub>(endpoints, ""{x.Path}"");
         }}"));
             string content = $@"{GeneratedCodeHeader}
 
 namespace Microsoft.AspNetCore.Builder
 {{
 {DefaultAnnotationsStr}
-    internal static class HubEndpointRouteBuilderExtensions
+    internal static class HubExtensions
     {{
 {methodsStr}
     }}
@@ -237,14 +342,51 @@ namespace Microsoft.AspNetCore.Builder
             context.AddSource("HubEndpointRouteBuilderExtensions.g.cs", content);
         }
 
-        private static string GenerateInterfaceMethod(OpenApiHubMethod method, string @namespace)
+        private static string GenerateHubInterfaceMethod(OpenApiOperationDescriptor method, string defaultNamespace, string? contractNamespace, IDictionary<string, OpenApiModel> modelMap) => GenerateInterfaceMethod(method, defaultNamespace, contractNamespace, modelMap);
+
+        private static string GenerateServiceInterfaceMethod(OpenApiOperationDescriptor method, string defaultNamespace, string? contractNamespace, IDictionary<string, OpenApiModel> modelMap)
         {
-            string parametersStr = String.Join(", ", method.Parameters.Select(x => $"{x.TypeName.GetGlobalTypeName(@namespace)} {x.ParameterName}"));
+            void ModifyParameter(IList<string> parameters)
+            {
+                parameters.Insert(0, "global::Microsoft.AspNetCore.Http.HttpContext context");
+            }
+            return GenerateInterfaceMethod(method, defaultNamespace, contractNamespace, modelMap, ModifyParameter);
+        }
+
+        private static string GenerateInterfaceMethod(OpenApiOperationDescriptor method, string defaultNamespace, string? contractNamespace, IDictionary<string, OpenApiModel> modelMap, Action<IList<string>>? parametersHandler = null)
+        {
+            string parametersStr = GenerateParameters(method, defaultNamespace, contractNamespace, modelMap, parametersHandler);
             string content = $"        global::System.Threading.Tasks.Task {method.MethodName}({parametersStr});";
             return content;
         }
 
-        private static IEnumerable<OpenApiHubModel> CollectModels(SourceProductionContext context, string path, IDictionary<string, OpenApiSchema> schemas)
+        private static string GenerateParameters(OpenApiOperationDescriptor method, string defaultNamespace, string? contractNamespace, IDictionary<string, OpenApiModel> modelMap, Action<IList<string>>? parametersHandler = null)
+        {
+            string GenerateParameter(OpenApiOperationParameter parameter)
+            {
+                string parameterNamespace = ResolveParameterNamespace(parameter.TypeName, defaultNamespace, contractNamespace, modelMap);
+                return $"{parameter.TypeName.GetGlobalTypeName(parameterNamespace)} {parameter.ParameterName}";
+            }
+
+            IList<string> parameters = method.Parameters.Select(GenerateParameter).ToList();
+            parametersHandler?.Invoke(parameters);
+            string parametersStr = String.Join(", ", parameters);
+            return parametersStr;
+        }
+
+        private static string ResolveParameterNamespace(OpenApiTypeName parameterType, string defaultNamespace, string? contractNamespace, IDictionary<string, OpenApiModel> modelMap)
+        {
+            if (parameterType.IsPrimitive)
+                return "";
+
+            if (!modelMap.TryGetValue(parameterType.Name, out OpenApiModel model))
+                throw new InvalidOperationException($"Unknown schema reference: {parameterType.Name}");
+
+            string resolvedNamespace = model.Usage == OpenApiModelUsage.Service ? defaultNamespace : contractNamespace ?? defaultNamespace;
+            return resolvedNamespace;
+        }
+
+        private static IEnumerable<OpenApiModel> CollectModels(SourceProductionContext context, string path, IDictionary<string, OpenApiSchema> schemas)
         {
             foreach (KeyValuePair<string, OpenApiSchema> schemaPair in schemas)
             {
@@ -253,10 +395,10 @@ namespace Microsoft.AspNetCore.Builder
 
                 bool isEnum = modelSchema.Enum.Any();
 
-                OpenApiHubModel model;
+                OpenApiModel model;
                 if (isEnum)
                 {
-                    OpenApiHubEnum @enum = new OpenApiHubEnum(schemaName);
+                    OpenApiEnum @enum = new OpenApiEnum(schemaName);
                     model = @enum;
 
                     IDictionary<int, string> enumNameMap = new Dictionary<int, string>();
@@ -268,21 +410,21 @@ namespace Microsoft.AspNetCore.Builder
                     for (int i = 0; i < modelSchema.Enum.Count; i++)
                     {
                         IOpenApiAny enumMember = modelSchema.Enum[i];
-                        OpenApiHubEnumMember? member = ParseEnumMember(context, path, enumMember, i, enumNameMap);
+                        OpenApiEnumMember? member = ParseEnumMember(context, path, enumMember, i, enumNameMap);
                         if (member != null)
                             @enum.Members.Add(member.Value);
                     }
                 }
                 else
                 {
-                    OpenApiHubClass @class = new OpenApiHubClass(schemaName);
+                    OpenApiClass @class = new OpenApiClass(schemaName);
                     model = @class;
 
                     foreach (KeyValuePair<string, OpenApiSchema> propertyPair in modelSchema.Properties)
                     {
                         string propertyName = propertyPair.Key;
                         OpenApiSchema propertySchema = propertyPair.Value;
-                        @class.Properties.Add(new OpenApiHubClassProperty(propertyName, GetCSharpTypeName(propertySchema)));
+                        @class.Properties.Add(new OpenApiClassProperty(propertyName, GetCSharpTypeName(propertySchema)));
                     }
                 }
 
@@ -290,39 +432,82 @@ namespace Microsoft.AspNetCore.Builder
             }
         }
 
-        private static IEnumerable<OpenApiHubMethod> CollectHubMethods(OpenApiDocumentContainer container)
+        private static void CollectOperations(OpenApiDocumentContainer container, IDictionary<OpenApiOperationGroupKey, OpenApiOperationGroup> operationGroupMap, IDictionary<string, OpenApiModel> modelMap)
         {
             foreach (KeyValuePair<string, OpenApiPathItem> pathPair in container.Document.Paths)
             {
                 string path = pathPair.Key;
-                OpenApiPathItem group = pathPair.Value;
+                OpenApiPathItem pathItem = pathPair.Value;
 
-                foreach (KeyValuePair<OperationType, OpenApiOperation> operationPair in group.Operations)
+                foreach (KeyValuePair<OperationType, OpenApiOperation> operationPair in pathItem.Operations)
                 {
                     OperationType method = operationPair.Key;
                     OpenApiOperation operation = operationPair.Value;
                     bool isWebSocket = IsWebSocket(operation);
-                    if (!isWebSocket)
-                        continue;
-
-                    string hubName = GetHubName(operation);
+                    string serviceName = GetServiceName(operation);
                     string methodName = operation.OperationId;
-                    string hubPath = GetHubPath(path);
-                    OpenApiHub hub = new OpenApiHub(hubName, hubPath);
-                    OpenApiHubMethod hubMethod = new OpenApiHubMethod(hub, methodName);
+                    string operationGroupPath = GetPath(path);
+                    OpenApiOperationGroupKey operationGroupKey = new OpenApiOperationGroupKey(serviceName, operationGroupPath, isWebSocket);
+                    if (!operationGroupMap.TryGetValue(operationGroupKey, out OpenApiOperationGroup operationGroup))
+                    {
+                        operationGroup = new OpenApiOperationGroup(operationGroupKey);
+                        operationGroupMap.Add(operationGroupKey, operationGroup);
+                    }
+
+                    OpenApiOperationDescriptor operationDescriptor = new OpenApiOperationDescriptor(operationGroup, methodName, path);
 
                     OpenApiSchema? bodySchema = operation.RequestBody?.Content.FirstOrDefault().Value?.Schema;
                     if (bodySchema != null)
-                        hubMethod.Parameters.Add(new OpenApiHubMethodParameter("content", GetCSharpTypeName(bodySchema)));
+                        operationDescriptor.Parameters.Add(new OpenApiOperationParameter("content", GetCSharpTypeName(bodySchema)));
 
                     foreach (OpenApiParameter parameter in operation.Parameters)
                     {
-                        hubMethod.Parameters.Add(new OpenApiHubMethodParameter(parameter.Name, GetCSharpTypeName(parameter.Schema)));
+                        operationDescriptor.Parameters.Add(new OpenApiOperationParameter(parameter.Name, GetCSharpTypeName(parameter.Schema)));
                     }
 
-                    yield return hubMethod;
+                    foreach (string usedSchema in GetUsedSchemas(operationPair.Value))
+                    {
+                        OpenApiModelUsage usage = isWebSocket ? OpenApiModelUsage.Hub : OpenApiModelUsage.Service;
+                        MarkSchemaAsUsed(modelMap, usedSchema, usage);
+                    }
+
+                    operationGroup.Operations.Add(operationDescriptor);
                 }
             }
+        }
+
+        private static void MarkSchemaAsUsed(IDictionary<string, OpenApiModel> modelMap, string usedSchema, OpenApiModelUsage usage)
+        {
+            if (!modelMap.TryGetValue(usedSchema, out OpenApiModel model)) 
+                return;
+
+            model.Usage |= usage;
+
+            if (model is not OpenApiClass @class) 
+                return;
+
+            foreach (OpenApiClassProperty property in @class.Properties)
+            {
+                MarkSchemaAsUsed(modelMap, property.TypeName.Name, usage);
+            }
+        }
+
+        private static IEnumerable<string> GetUsedSchemas(OpenApiOperation operation)
+        {
+            IEnumerable<string> usedSchemas = GetUsedSchemaReferences(operation).Where(x => x != null)
+                                                                                .SelectMany(x => x)
+                                                                                .Select(x => x.Value.Schema.Reference.Id);
+
+            return usedSchemas;
+        }
+
+        private static IEnumerable<IEnumerable<KeyValuePair<string, OpenApiMediaType>>> GetUsedSchemaReferences(OpenApiOperation operation)
+        {
+            if (operation.RequestBody != null)
+                yield return operation.RequestBody.Content;
+
+            yield return operation.Parameters.SelectMany(x => x.Content);
+            yield return operation.Responses.SelectMany(x => x.Value.Content);
         }
 
         private static OpenApiTypeName GetCSharpTypeName(OpenApiSchema schema)
@@ -362,9 +547,9 @@ namespace Microsoft.AspNetCore.Builder
             return extension is OpenApiBoolean { Value: true };
         }
 
-        private static string GetHubName(OpenApiOperation operation) => operation.Tags.Any() ? operation.Tags[0].Name : "Default";
+        private static string GetServiceName(OpenApiOperation operation) => operation.Tags.Any() ? operation.Tags[0].Name : "Default";
 
-        private static string GetHubPath(string path)
+        private static string GetPath(string path)
         {
             int pathEndIndex = path.IndexOf('/', 1);
             if (pathEndIndex > 0)
@@ -409,7 +594,7 @@ namespace Microsoft.AspNetCore.Builder
                 id: id
               , title: title
               , messageFormat: message
-              , category: nameof(SignalRHubGenerator)
+              , category: nameof(OpenApiGenerator)
               , defaultSeverity: severity
               , isEnabledByDefault: true
             );
@@ -465,7 +650,7 @@ namespace Microsoft.AspNetCore.Builder
             return value;
         }
 
-        private static OpenApiHubEnumMember? ParseEnumMember(SourceProductionContext context, string path, IOpenApiAny enumMember, int index, IDictionary<int, string> enumNameMap)
+        private static OpenApiEnumMember? ParseEnumMember(SourceProductionContext context, string path, IOpenApiAny enumMember, int index, IDictionary<int, string> enumNameMap)
         {
             switch (enumMember)
             {
@@ -476,10 +661,10 @@ namespace Microsoft.AspNetCore.Builder
                         ReportDiagnostic(DiagnosticSeverity.Error, ErrorCode.OpenApi, "OpenAPI document parsing error", $"Missing enum name for value '{intValue}'. Specify it using the {EnumVarNamesExtension} property.", context, path);
                         return null;
                     }
-                    return new OpenApiHubEnumMember(name, intValue);
+                    return new OpenApiEnumMember(name, intValue);
 
                 case OpenApiString @string:
-                    return new OpenApiHubEnumMember(@string.Value, index);
+                    return new OpenApiEnumMember(@string.Value, index);
 
                 default: throw new ArgumentOutOfRangeException(nameof(enumMember), enumMember, null);
             }
@@ -555,16 +740,16 @@ namespace Microsoft.AspNetCore.Builder
         {
             SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(content);
             EmbeddedSourceNormalizationVisitor visitor = new EmbeddedSourceNormalizationVisitor();
-            SyntaxNode normalizedNode = visitor.Visit(syntaxTree.GetRoot())!;
+            SyntaxNode normalizedNode = visitor.Visit(syntaxTree.GetRoot());
             string normalizedContent = normalizedNode.ToFullString();
             return normalizedContent;
         }
 
         private sealed class EmbeddedSourceNormalizationVisitor : CSharpSyntaxRewriter
         {
-            public override SyntaxNode? VisitClassDeclaration(ClassDeclarationSyntax node) => node.WithAttributeLists(CreateAttributeLists(node, Annotation.All));
+            public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node) => node.WithAttributeLists(CreateAttributeLists(node, Annotation.All));
 
-            public override SyntaxNode? VisitEnumDeclaration(EnumDeclarationSyntax node) => node.WithAttributeLists(CreateAttributeLists(node, EnumerableExtensions.Create(Annotation.GeneratedCode)));
+            public override SyntaxNode VisitEnumDeclaration(EnumDeclarationSyntax node) => node.WithAttributeLists(CreateAttributeLists(node, EnumerableExtensions.Create(Annotation.GeneratedCode)));
 
             private static SyntaxList<AttributeListSyntax> CreateAttributeLists(MemberDeclarationSyntax node, IEnumerable<Annotation> annotations)
             {
@@ -588,7 +773,7 @@ namespace Microsoft.AspNetCore.Builder
 
         private static class ErrorCode
         {
-            private const string Prefix = "HUBGEN";
+            private const string Prefix = "OPENAPIGEN";
             
             public const string OpenApi = $"{Prefix}001";
         }
@@ -602,102 +787,131 @@ namespace Microsoft.AspNetCore.Builder
 
             public OpenApiDocumentContainer(string path, AdditionalText sourceFile, OpenApiDocument document, OpenApiDiagnostic diagnostic)
             {
-                this.Path = path;
-                this.SourceFile = sourceFile;
-                this.Document = document;
-                this.Diagnostic = diagnostic;
+                Path = path;
+                SourceFile = sourceFile;
+                Document = document;
+                Diagnostic = diagnostic;
             }
         }
 
-        private readonly struct OpenApiHub
+        private readonly struct OpenApiOperationGroupKey
         {
             public string Name { get; }
             public string Path { get; }
+            public bool IsWebSocket { get; }
 
-            public OpenApiHub(string name, string path)
+            public OpenApiOperationGroupKey(string name, string path, bool isWebSocket)
             {
-                this.Name = name;
-                this.Path = path;
+                Name = name;
+                Path = path;
+                IsWebSocket = isWebSocket;
             }
         }
 
-        private readonly struct OpenApiHubMethod
+        private readonly struct OpenApiOperationGroup
         {
-            public OpenApiHub Hub { get; }
-            public string MethodName { get; }
-            public ICollection<OpenApiHubMethodParameter> Parameters { get; }
+            public OpenApiOperationGroupKey Key { get; }
+            public string Name => Key.Name;
+            public string Path => Key.Path;
+            public bool IsWebSocket => Key.IsWebSocket;
+            public ICollection<OpenApiOperationDescriptor> Operations { get; }
 
-            public OpenApiHubMethod(OpenApiHub hub, string methodName)
+            public OpenApiOperationGroup(OpenApiOperationGroupKey key)
             {
-                this.Hub = hub;
-                this.MethodName = methodName;
-                this.Parameters = new Collection<OpenApiHubMethodParameter>();
+                Key = key;
+                Operations = new Collection<OpenApiOperationDescriptor>();
             }
         }
 
-        private readonly struct OpenApiHubMethodParameter
+        private readonly struct OpenApiOperationDescriptor
+        {
+            public OpenApiOperationGroup Group { get; }
+            public string MethodName { get; }
+            public string Path { get; }
+            public ICollection<OpenApiOperationParameter> Parameters { get; }
+
+            public OpenApiOperationDescriptor(OpenApiOperationGroup group, string methodName, string path)
+            {
+                Group = group;
+                MethodName = methodName;
+                Path = path;
+                Parameters = new Collection<OpenApiOperationParameter>();
+            }
+        }
+
+        private readonly struct OpenApiOperationParameter
         {
             public string ParameterName { get; }
             public OpenApiTypeName TypeName { get; }
 
-            public OpenApiHubMethodParameter(string parameterName, OpenApiTypeName typeName)
+            public OpenApiOperationParameter(string parameterName, OpenApiTypeName typeName)
             {
-                this.ParameterName = parameterName;
-                this.TypeName = typeName;
+                ParameterName = parameterName;
+                TypeName = typeName;
             }
         }
 
-        private abstract class OpenApiHubModel
+        [Flags]
+        private enum OpenApiModelUsage
+        {
+            None    = 0,
+            Hub     = 1,
+            Service = 2,
+            Both    = Hub | Service
+        }
+
+        private abstract class OpenApiModel
         {
             public string Name { get; }
+            public OpenApiModelUsage Usage { get; set; }
 
-            protected OpenApiHubModel(string name)
+            protected OpenApiModel(string name)
             {
-                this.Name = name;
+                Name = name;
             }
         }
 
-        private sealed class OpenApiHubClass : OpenApiHubModel
+        private sealed class OpenApiClass : OpenApiModel
         {
-            public ICollection<OpenApiHubClassProperty> Properties { get; }
+            public ICollection<OpenApiClassProperty> Properties { get; }
 
-            public OpenApiHubClass(string name) : base(name)
+            public OpenApiClass(string name) : base(name)
             {
-                this.Properties = new Collection<OpenApiHubClassProperty>();
+                Properties = new Collection<OpenApiClassProperty>();
             }
         }
 
-        private readonly struct OpenApiHubClassProperty
+        private readonly struct OpenApiClassProperty
         {
             public string PropertyName { get; }
             public OpenApiTypeName TypeName { get; }
 
-            public OpenApiHubClassProperty(string propertyName, OpenApiTypeName typeName)
+            public OpenApiClassProperty(string propertyName, OpenApiTypeName typeName)
             {
-                this.PropertyName = propertyName;
-                this.TypeName = typeName;
+                PropertyName = propertyName;
+                TypeName = typeName;
             }
         }
 
-        private sealed class OpenApiHubEnum : OpenApiHubModel
+        private sealed class OpenApiEnum : OpenApiModel
         {
-            public ICollection<OpenApiHubEnumMember> Members { get; }
+            public ICollection<OpenApiEnumMember> Members { get; }
 
-            public OpenApiHubEnum(string name) : base(name)
+            public OpenApiEnum(string name) : base(name)
             {
-                this.Members = new Collection<OpenApiHubEnumMember>();
+                Members = new Collection<OpenApiEnumMember>();
             }
         }
 
-        private readonly struct OpenApiHubEnumMember
+        private readonly struct OpenApiEnumMember
         {
             public string Name { get; }
             public int Value { get; }
 
-            public OpenApiHubEnumMember(string name, int value)
+            public OpenApiEnumMember(string name, int value)
             {
-                this.Name = name;
-                this.Value = value;
+                Name = name;
+                Value = value;
             }
         }
 
@@ -708,15 +922,15 @@ namespace Microsoft.AspNetCore.Builder
 
             public OpenApiTypeName(string name, bool isPrimitive)
             {
-                this.Name = name;
-                this.IsPrimitive = isPrimitive;
+                Name = name;
+                IsPrimitive = isPrimitive;
             }
 
-            public string GetGlobalTypeName(string @namespace)
+            public string GetGlobalTypeName(string defaultNamespace)
             {
-                StringBuilder sb = new StringBuilder(this.Name);
-                if (!this.IsPrimitive)
-                    sb.Insert(0, $"global::{@namespace}.");
+                StringBuilder sb = new StringBuilder(Name);
+                if (!IsPrimitive)
+                    sb.Insert(0, $"global::{defaultNamespace}.");
 
                 string globalTypeName = sb.ToString();
                 return globalTypeName;

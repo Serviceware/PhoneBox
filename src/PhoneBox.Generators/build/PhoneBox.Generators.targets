@@ -4,6 +4,7 @@
     <ItemGroup>
       <AdditionalFiles Include="@(None)" Condition="'%(Extension)' == '.yml'" />
       <CompilerVisibleItemMetadata Include="None" MetadataName="Namespace" />
+      <CompilerVisibleItemMetadata Include="None" MetadataName="HubNamespace" />
       <CompilerVisibleItemMetadata Include="None" MetadataName="ContractNamespace" />
     </ItemGroup>
   </Target>

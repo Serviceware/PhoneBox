@@ -5,25 +5,36 @@ info:
 servers:
   - url: https://localhost/
 paths:
-  /TelephonyHook/{fromPhoneNumber}/{toPhoneNumber}:
-    get:
+  /TelephonyHook/OnCallConnected:
+    post:
       tags:
-        - WebHook
-      operationId: OnCall
-      parameters:
-        - name: fromPhoneNumber
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: toPhoneNumber
-          in: path
-          required: true
-          schema:
-            type: string
+        - TelephonyHook
+      operationId: OnCallConnected
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebHookCallConnectedRequest'
+        required: true
       responses:
-        '200':
-          description: Success
+        '202':
+          description: Accepted
+      security:
+      - openIdConnect: [ ]
+  /TelephonyHook/OnCallDisconnected:
+    post:
+      tags:
+        - TelephonyHook
+      operationId: OnCallDisconnected
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebHookCallDisconnectedRequest'
+        required: true
+      responses:
+        '202':
+          description: Accepted
       security:
       - openIdConnect: [ ]
   /TelephonyHub/ReceiveCallConnected:
@@ -37,9 +48,9 @@ paths:
             schema:
               $ref: '#/components/schemas/CallConnectedEvent'
         required: true
-      responses: 
-        '204':
-          description: NoContent
+      responses:
+        '202':
+          description: Accepted
       security:
       - openIdConnect: [ ]
       x-websocket: true
@@ -55,13 +66,35 @@ paths:
               $ref: '#/components/schemas/CallDisconnectedEvent'
         required: true
       responses: 
-        '204':
-          description: NoContent
+        '202':
+          description: Accepted
       security:
       - openIdConnect: [ ]
       x-websocket: true
 components:
   schemas:
+    WebHookCallConnectedRequest:
+      required:
+        - FromPhoneNumber
+        - ToPhoneNumber
+      type: object
+      properties:
+        FromPhoneNumber:
+          type: string
+        ToPhoneNumber:
+          type: string
+      additionalProperties: false
+    WebHookCallDisconnectedRequest:
+      required:
+        - FromPhoneNumber
+        - ToPhoneNumber
+      type: object
+      properties:
+        FromPhoneNumber:
+          type: string
+        ToPhoneNumber:
+          type: string
+      additionalProperties: false
     CallConnectedEvent:
       required:
         - PhoneNumber

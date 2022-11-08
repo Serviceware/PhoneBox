@@ -9,7 +9,8 @@ namespace PhoneBox.Generators.Tests
 {
     internal static class RoslynUtility
     {
-        public static CSharpCompilation AddReference<T>(this CSharpCompilation compilation) => compilation.AddReferences(MetadataReference.CreateFromFile(typeof(T).Assembly.Location));
+        public static CSharpCompilation AddReference<T>(this CSharpCompilation compilation) => AddReference(compilation, typeof(T));
+        public static CSharpCompilation AddReference(this CSharpCompilation compilation, Type type) => compilation.AddReferences(MetadataReference.CreateFromFile(type.Assembly.Location));
 
         public static void VerifyCompilation(Compilation compilation) => VerifyCompilation(compilation.GetDiagnostics());
         public static void VerifyCompilation(GeneratorRunResult result)

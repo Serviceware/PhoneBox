@@ -1,10 +1,11 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using PhoneBox.Abstractions;
 
-namespace PhoneBox.Server.WebHook
+namespace PhoneBox.Server
 {
-    internal sealed class TelephonyHook : ITelephonyHook
+    internal partial class TelephonyHook
     {
         private readonly ITelephonyEventDispatcherFactory _telephonyEventDispatcherFactory;
 
@@ -13,17 +14,15 @@ namespace PhoneBox.Server.WebHook
             this._telephonyEventDispatcherFactory = telephonyEventDispatcherFactory;
         }
 
-        public Task HandleGet(string fromPhoneNumber, string toPhoneNumber, HttpContext context) => this.HandleWebHookRequest(fromPhoneNumber, toPhoneNumber, context);
+        public Task OnCallConnected(HttpContext context, WebHookCallConnectedRequest request) => this.HandleWebHookRequest(request.FromPhoneNumber, request.ToPhoneNumber, context, (x, y) => x.OnCallConnected(new CallConnectedEvent(y)));
 
-        public Task HandlePost(WebHookRequest request, HttpContext context) => this.HandleWebHookRequest(request.FromPhoneNumber, request.ToPhoneNumber, context);
+        public Task OnCallDisconnected(HttpContext context, WebHookCallDisconnectedRequest request) => this.HandleWebHookRequest(request.FromPhoneNumber, request.ToPhoneNumber, context, (x, y) => x.OnCallDisconnected(new CallDisconnectedEvent(y)));
 
-        private async Task HandleWebHookRequest(string fromPhoneNumber, string toPhoneNumber, HttpContext context)
+        private async Task HandleWebHookRequest(string fromPhoneNumber, string toPhoneNumber, HttpContext context, Func<ITelephonyEventDispatcher, string, Task> handler)
         {
             ITelephonyEventDispatcher telephonyEventDispatcher = this._telephonyEventDispatcherFactory.Create(new CallSubscriber(toPhoneNumber));
-            CallConnectedEvent call = new CallConnectedEvent(fromPhoneNumber);
-            await telephonyEventDispatcher.OnCallConnected(call).ConfigureAwait(false);
-            context.Response.StatusCode = 200;
-            await context.Response.WriteAsync("Thx!").ConfigureAwait(false);
+            await handler(telephonyEventDispatcher, fromPhoneNumber).ConfigureAwait(false);
+            context.Response.StatusCode = StatusCodes.Status202Accepted;
         }
     }
 }

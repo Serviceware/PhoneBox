@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using PhoneBox.Abstractions;
 
 namespace PhoneBox.Server.SignalR
 {
-    public partial class TelephonyHub : Hub<ITelephonyHub>
+    public partial class TelephonyHub
     {
         private readonly ITelephonyConnector _connector;
         private readonly ILogger<TelephonyHub> _logger;

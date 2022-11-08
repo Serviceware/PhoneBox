@@ -18,7 +18,7 @@ namespace PhoneBox.Abstractions
 
         public CallDisconnectedEvent(string phoneNumber)
         {
-            this.PhoneNumber = phoneNumber;
+            PhoneNumber = phoneNumber;
         }
     }
 }

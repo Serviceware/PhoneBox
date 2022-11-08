@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AssemblyAttribute Include="PhoneBox.Generators.SignalRHubGeneration">
+    <AssemblyAttribute Include="PhoneBox.Generators.OpenApiGeneration">
       <_Parameter1>PhoneBox.Generators.SignalRHubGenerationOutputs.Interface | PhoneBox.Generators.SignalRHubGenerationOutputs.Model</_Parameter1>
       <_Parameter1_IsLiteral>true</_Parameter1_IsLiteral>
     </AssemblyAttribute>

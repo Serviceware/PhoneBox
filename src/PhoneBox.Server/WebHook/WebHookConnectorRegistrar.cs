@@ -4,10 +4,8 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
@@ -17,29 +15,25 @@ namespace PhoneBox.Server.WebHook
 {
     internal sealed class WebHookConnectorRegistrar : TelephonyConnectorRegistrar<WebHookConnector>
     {
+        private const string AuthorizationPolicyName = "WebHookConsumer";
+
         public override void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
-            services.AddSingleton<ITelephonyHook, TelephonyHook>();
+            services.AddGeneratedEndpoints();
             services.Configure<WebHookOptions>(configuration.GetSection(WebHookOptions.ConfigurationSectionName));
             services.AddAuthentication()
                     .AddScheme<AuthenticationSchemeOptions, SecretKeyAuthenticationHandler>("WebHookConsumer", configureOptions: null);
             services.AddAuthorization(x =>
             {
-                x.AddPolicy("WebHookConsumer", y => y.AddAuthenticationSchemes("WebHookConsumer")
-                                                     .RequireAuthenticatedUser()
-                                                     .Build());
+                x.AddPolicy(AuthorizationPolicyName, y => y.AddAuthenticationSchemes("WebHookConsumer")
+                                                           .RequireAuthenticatedUser()
+                                                           .Build());
             });
         }
 
         public override void ConfigureApplication(WebApplication application)
         {
-            if (application.Environment.IsDevelopment())
-            {
-                application.MapGet("/TelephonyHook/{fromPhoneNumber}/{toPhoneNumber}", (string fromPhoneNumber, string toPhoneNumber, ITelephonyHook hook, HttpContext context) => hook.HandleGet(fromPhoneNumber, toPhoneNumber, context));
-            }
-
-            application.MapPost("/TelephonyHook", (WebHookRequest request, ITelephonyHook hook, HttpContext context) => hook.HandlePost(request, context))
-                       .RequireAuthorization("WebHookConsumer");
+            application.AddGeneratedEndpoints(AuthorizationPolicyName);
         }
 
         private sealed class SecretKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>

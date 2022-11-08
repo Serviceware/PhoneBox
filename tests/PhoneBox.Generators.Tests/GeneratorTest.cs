@@ -6,7 +6,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using Dibix.Testing;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.CodeAnalysis;
@@ -14,6 +16,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
@@ -23,10 +26,10 @@ namespace PhoneBox.Generators.Tests
     public sealed class GeneratorTest : TestBase
     {
         [TestMethod]
-        public void SignalRHubGenerator_Contracts() => this.CompileContracts(assertOutputs: true);
+        public void OpenApiGenerator_Contracts() => this.CompileContracts(assertOutputs: true);
 
         [TestMethod]
-        public void SignalRHubGenerator_Implementation()
+        public void OpenApiGenerator_Implementation()
         {
             Compilation contractCompilation = this.CompileContracts(assertOutputs: false);
 
@@ -39,43 +42,55 @@ namespace PhoneBox.Generators.Tests
             (
                 filter: "PhoneBox.Generators.SignalRHubGenerationOutputs.Implementation"
               , metadataNamespace: null
+              , metadataHubNamespace: $"{typeof(GeneratorTest).Namespace}.SignalR"
               , metadataContractNamespace: "PhoneBox.Abstractions"
               , assertOutputs: true
               , expectedFiles: new[]
                 {
-                    "SignalRHubGenerationAttribute.g.cs"
+                    "OpenApiGenerationAttribute.g.cs"
                   , "SignalRHubGenerationOutputs.g.cs"
+                  , "WebHookCallConnectedRequest.g.cs"
+                  , "WebHookCallDisconnectedRequest.g.cs"
+                  , "ITelephonyHook.g.cs"
+                  , "TelephonyHook.g.cs"
                   , "TelephonyHub.g.cs"
                   , "HubEndpointRouteBuilderExtensions.g.cs"
+                  , "EndpointExtensions.g.cs"
                 }
-              , MetadataReference.CreateFromFile(typeof(Hub).Assembly.Location)
-              , MetadataReference.CreateFromFile(typeof(HubEndpointConventionBuilder).Assembly.Location)
-              , MetadataReference.CreateFromFile(typeof(IEndpointRouteBuilder).Assembly.Location)
-              , MetadataReference.CreateFromFile(contractAssemblyFilePath)
-            );
+              , compilation => compilation.AddReference<Hub>()
+                                          .AddReference<HubEndpointConventionBuilder>()
+                                          .AddReference<IEndpointRouteBuilder>()
+                                          .AddReference<HttpContext>()
+                                          .AddReference<IServiceProvider>()
+                                          .AddReference<IAuthorizeData>()
+                                          .AddReference(typeof(ServiceCollectionServiceExtensions))
+                                          .AddReference(typeof(AuthorizationEndpointConventionBuilderExtensions))
+                                          .AddReferences(MetadataReference.CreateFromFile(contractAssemblyFilePath))
+                                          .AddSyntaxTrees(GetEmbeddedImplementationSource("TelephonyHook.cs")));
         }
 
         private Compilation CompileContracts(bool assertOutputs) => this.RunGenerator
         (
             filter: "PhoneBox.Generators.SignalRHubGenerationOutputs.Model | PhoneBox.Generators.SignalRHubGenerationOutputs.Interface"
           , metadataNamespace: "PhoneBox.Abstractions"
+          , metadataHubNamespace: null
           , metadataContractNamespace: null
           , assertOutputs: assertOutputs
           , expectedFiles: new[]
             {
-                "SignalRHubGenerationAttribute.g.cs"
+                "OpenApiGenerationAttribute.g.cs"
               , "SignalRHubGenerationOutputs.g.cs"
               , "CallConnectedEvent.g.cs"
               , "CallDisconnectedEvent.g.cs"
-              , "CallState.g.cs"
-              , "CallHangUpReason.g.cs"
+            //, "CallState.g.cs"
+            //, "CallHangUpReason.g.cs"
               , "ITelephonyHub.g.cs"
             }
         );
 
-        private Compilation RunGenerator(string filter, string? metadataNamespace, string? metadataContractNamespace, bool assertOutputs, IReadOnlyList<string> expectedFiles, params MetadataReference[] additionalReferences)
+        private Compilation RunGenerator(string filter, string? metadataNamespace, string? metadataHubNamespace, string? metadataContractNamespace, bool assertOutputs, IReadOnlyList<string> expectedFiles, Func<CSharpCompilation, CSharpCompilation>? configureCompilation = null)
         {
-            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText($"[assembly: PhoneBox.Generators.SignalRHubGenerationAttribute({filter})]");
+            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText($"[assembly: PhoneBox.Generators.OpenApiGenerationAttribute({filter})]");
             Assembly netStandardAssembly = AppDomain.CurrentDomain.GetAssemblies().Single(x => x.GetName().Name == "netstandard");
             Assembly systemRuntimeAssembly = AppDomain.CurrentDomain.GetAssemblies().Single(x => x.GetName().Name == "System.Runtime");
             CSharpCompilation inputCompilation = CSharpCompilation.Create(null)
@@ -83,9 +98,11 @@ namespace PhoneBox.Generators.Tests
                                                                   .AddReference<object>()
                                                                   .AddReferences(MetadataReference.CreateFromFile(netStandardAssembly.Location))
                                                                   .AddReferences(MetadataReference.CreateFromFile(systemRuntimeAssembly.Location))
-                                                                  .AddReferences(additionalReferences)
                                                                   .AddSyntaxTrees(syntaxTree);
-            
+
+            if (configureCompilation != null) 
+                inputCompilation = configureCompilation(inputCompilation);
+
             // At this state the compilation isn't valid because the generator will add the post initialization outputs that are used within this compilation
             //RoslynUtility.VerifyCompilation(inputCompilation);
 
@@ -108,6 +125,12 @@ namespace PhoneBox.Generators.Tests
                                          value = metadataNamespace;
                                          return metadataNamespace != null;
                                      });
+            fileAnalyzerConfigOptions.Setup(x => x.TryGetValue("build_metadata.none.HubNamespace", out It.Ref<string?>.IsAny))
+                                     .Returns((string _, out string? value) =>
+                                     {
+                                         value = metadataHubNamespace;
+                                         return metadataHubNamespace != null;
+                                     });
             fileAnalyzerConfigOptions.Setup(x => x.TryGetValue("build_metadata.none.ContractNamespace", out It.Ref<string?>.IsAny))
                                      .Returns((string _, out string? value) =>
                                      {
@@ -117,7 +140,7 @@ namespace PhoneBox.Generators.Tests
             analyzerConfigOptionsProvider.SetupGet(x => x.GlobalOptions).Returns(globalAnalyzerConfigOptions.Object);
             analyzerConfigOptionsProvider.Setup(x => x.GetOptions(additionalText.Object)).Returns(fileAnalyzerConfigOptions.Object);
 
-            IIncrementalGenerator generator = new SignalRHubGenerator();
+            IIncrementalGenerator generator = new OpenApiGenerator();
             GeneratorDriver driver = CSharpGeneratorDriver.Create
             (
                 generators: EnumerableExtensions.Create(generator.AsSourceGenerator())
@@ -131,18 +154,16 @@ namespace PhoneBox.Generators.Tests
             RoslynUtility.VerifyCompilation(runResult.Diagnostics);
             Assert.AreEqual(1, runResult.Results.Length);
             RoslynUtility.VerifyCompilation(runResult.Results[0]);
-            IList<SyntaxTree> syntaxTrees = outputCompilation.SyntaxTrees.ToArray();
-            Assert.AreEqual(inputCompilation.SyntaxTrees[0], syntaxTrees[0]);
 
             if (assertOutputs)
             {
-                for (int i = 1; i < syntaxTrees.Count; i++)
+                for (int i = 0; i < runResult.GeneratedTrees.Length; i++)
                 {
-                    SyntaxTree outputSyntaxTree = syntaxTrees[i];
+                    SyntaxTree outputSyntaxTree = runResult.GeneratedTrees[i];
                     FileInfo outputFile = new FileInfo(outputSyntaxTree.FilePath);
                     string actualCode = outputSyntaxTree.ToString();
                     this.AddResultFile(outputFile.Name, actualCode);
-                    Assert.AreEqual(expectedFiles[i - 1], outputFile.Name);
+                    Assert.AreEqual(expectedFiles[i], outputFile.Name);
                     string expectedCode = this.GetEmbeddedResourceContent(outputFile.Name).Replace("%GENERATORVERSION%", ThisAssembly.AssemblyFileVersion);
                     this.AssertEqual(expectedCode, actualCode, outputName: Path.GetFileNameWithoutExtension(outputFile.Name), extension: outputFile.Extension.TrimStart('.'));
                 }
@@ -153,9 +174,10 @@ namespace PhoneBox.Generators.Tests
 
             Assert.AreEqual(expectedFiles.Count, runResult.GeneratedTrees.Length);
             Assert.AreEqual(expectedFiles.Count, runResult.Results[0].GeneratedSources.Length);
-            Assert.AreEqual(expectedFiles.Count + 1, syntaxTrees.Count);
 
             return outputCompilation;
         }
+
+        private SyntaxTree GetEmbeddedImplementationSource(string fileName) => CSharpSyntaxTree.ParseText(GetEmbeddedResourceContent(fileName), path: fileName);
     }
 }

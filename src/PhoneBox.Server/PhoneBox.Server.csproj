@@ -10,11 +10,11 @@
     <Compile Include="..\..\shared\Guard.cs" Link="Diagnostics\Guard.cs" />
     <Compile Include="..\..\shared\Extensions\CollectionExtensions.cs" Link="Extensions\CollectionExtensions.cs" />
     <Compile Include="..\..\shared\Extensions\EnumerableExtensions.cs" Link="Extensions\EnumerableExtensions.cs" />
-    <None Include="..\..\shared\Schemas\OpenApiSchema.yml" Link="Schemas\OpenApiSchema.yml" Namespace="$(RootNamespace).SignalR" ContractNamespace="PhoneBox.Abstractions" />
+    <None Include="..\..\shared\Schemas\OpenApiSchema.yml" Link="Schemas\OpenApiSchema.yml" HubNamespace="$(RootNamespace).SignalR" ContractNamespace="PhoneBox.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>
-    <AssemblyAttribute Include="PhoneBox.Generators.SignalRHubGeneration">
+    <AssemblyAttribute Include="PhoneBox.Generators.OpenApiGeneration">
       <_Parameter1>PhoneBox.Generators.SignalRHubGenerationOutputs.Implementation</_Parameter1>
       <_Parameter1_IsLiteral>true</_Parameter1_IsLiteral>
     </AssemblyAttribute>

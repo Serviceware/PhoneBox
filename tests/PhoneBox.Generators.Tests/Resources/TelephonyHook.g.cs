@@ -7,9 +7,9 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace PhoneBox.Generators.Tests.SignalR
+namespace PhoneBox.Generators.Tests
 {
-    public partial class TelephonyHub : global::Microsoft.AspNetCore.SignalR.Hub<global::PhoneBox.Abstractions.ITelephonyHub>
+    internal partial class TelephonyHook : global::PhoneBox.Generators.Tests.ITelephonyHook
     {
     }
 }

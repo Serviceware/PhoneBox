@@ -101,7 +101,7 @@ namespace PhoneBox.Server
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.MapHub<TelephonyHub>()
+            app.MapGeneratedHub<TelephonyHub>()
                .RequireAuthorization("HubConsumer");
 
             if (isDevelopment)
