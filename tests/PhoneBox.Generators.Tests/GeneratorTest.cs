@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Dibix.Testing;
 using Microsoft.AspNetCore.Authorization;
@@ -26,19 +27,19 @@ namespace PhoneBox.Generators.Tests
     public sealed class GeneratorTest : TestBase
     {
         [TestMethod]
-        public void OpenApiGenerator_Contracts() => this.CompileContracts(assertOutputs: true);
+        public void OpenApiGenerator_Contracts() => CompileContracts(assertOutputs: true);
 
         [TestMethod]
         public void OpenApiGenerator_Implementation()
         {
-            Compilation contractCompilation = this.CompileContracts(assertOutputs: false);
+            Compilation contractCompilation = CompileContracts(assertOutputs: false);
 
-            string contractAssemblyFilePath = Path.Combine(this.TestDirectory, $"{typeof(GeneratorTest).Namespace}.Contracts.generated.dll");
+            string contractAssemblyFilePath = Path.Combine(TestDirectory, $"{typeof(GeneratorTest).Namespace}.Contracts.generated.dll");
             EmitResult emitResult = contractCompilation.Emit(contractAssemblyFilePath);
             RoslynUtility.VerifyCompilation(emitResult.Diagnostics);
             Assert.IsTrue(emitResult.Success, "emitResult.Success");
 
-            _ = this.RunGenerator
+            _ = RunGenerator
             (
                 filter: "PhoneBox.Generators.SignalRHubGenerationOutputs.Implementation"
               , metadataNamespace: null
@@ -69,7 +70,7 @@ namespace PhoneBox.Generators.Tests
                                           .AddSyntaxTrees(GetEmbeddedImplementationSource("TelephonyHook.cs")));
         }
 
-        private Compilation CompileContracts(bool assertOutputs) => this.RunGenerator
+        private Compilation CompileContracts(bool assertOutputs) => RunGenerator
         (
             filter: "PhoneBox.Generators.SignalRHubGenerationOutputs.Model | PhoneBox.Generators.SignalRHubGenerationOutputs.Interface"
           , metadataNamespace: "PhoneBox.Abstractions"
@@ -108,7 +109,7 @@ namespace PhoneBox.Generators.Tests
 
             Mock<AdditionalText> additionalText = new Mock<AdditionalText>(MockBehavior.Strict);
             additionalText.SetupGet(x => x.Path).Returns(".yml");
-            additionalText.Setup(x => x.GetText(It.IsAny<CancellationToken>())).Returns(SourceText.From(this.GetEmbeddedResourceContent("OpenApiSchema.yml")));
+            additionalText.Setup(x => x.GetText(It.IsAny<CancellationToken>())).Returns(SourceText.From(GetEmbeddedResourceContent("OpenApiSchema.yml")));
 
             Mock<AnalyzerConfigOptions> globalAnalyzerConfigOptions = new Mock<AnalyzerConfigOptions>(MockBehavior.Strict);
             Mock<AnalyzerConfigOptions> fileAnalyzerConfigOptions = new Mock<AnalyzerConfigOptions>(MockBehavior.Strict);
@@ -162,10 +163,10 @@ namespace PhoneBox.Generators.Tests
                     SyntaxTree outputSyntaxTree = runResult.GeneratedTrees[i];
                     FileInfo outputFile = new FileInfo(outputSyntaxTree.FilePath);
                     string actualCode = outputSyntaxTree.ToString();
-                    this.AddResultFile(outputFile.Name, actualCode);
+                    AddResultFile(outputFile.Name, actualCode);
                     Assert.AreEqual(expectedFiles[i], outputFile.Name);
-                    string expectedCode = this.GetEmbeddedResourceContent(outputFile.Name).Replace("%GENERATORVERSION%", ThisAssembly.AssemblyFileVersion);
-                    this.AssertEqual(expectedCode, actualCode, outputName: Path.GetFileNameWithoutExtension(outputFile.Name), extension: outputFile.Extension.TrimStart('.'));
+                    string expectedCode = GetExpectedSource(outputFile.Name);
+                    AssertEqual(expectedCode, actualCode, outputName: Path.GetFileNameWithoutExtension(outputFile.Name), extension: outputFile.Extension.TrimStart('.'));
                 }
             }
 
@@ -179,5 +180,23 @@ namespace PhoneBox.Generators.Tests
         }
 
         private SyntaxTree GetEmbeddedImplementationSource(string fileName) => CSharpSyntaxTree.ParseText(GetEmbeddedResourceContent(fileName), path: fileName);
+
+        private string GetExpectedSource(string fileName)
+        {
+            const string generatorVersionPlaceholder = "%GENERATORVERSION%";
+            string NormalizeContent(System.Text.RegularExpressions.Match match)
+            {
+                if (match.Groups["GeneratorVersion"].Value != generatorVersionPlaceholder)
+                    throw new InvalidOperationException($"Expected resource content contains hardcoded version: {fileName}");
+
+                string result = $"{match.Groups["Begin"].Value}{ThisAssembly.AssemblyFileVersion}{match.Groups["End"].Value}";
+                return result;
+            }
+
+            string content = GetEmbeddedResourceContent(fileName);
+            string normalizedContent = Regex.Replace(content, @"(?<Begin>.*GeneratedCode\(""[^""]+"", "")(?<GeneratorVersion>[^""]+)(?<End>""\).*)", NormalizeContent);
+
+            return normalizedContent;
+        }
     }
 }

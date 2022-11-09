@@ -9,7 +9,7 @@
 
 namespace PhoneBox.Generators.Tests
 {
-    [global::System.CodeDom.Compiler.GeneratedCode("PhoneBox.Generators", "1.0.93.54273")]
+    [global::System.CodeDom.Compiler.GeneratedCode("PhoneBox.Generators", "%GENERATORVERSION%")]
     internal interface ITelephonyHook
     {
         global::System.Threading.Tasks.Task OnCallConnected(global::Microsoft.AspNetCore.Http.HttpContext context, global::PhoneBox.Generators.Tests.WebHookCallConnectedRequest content);

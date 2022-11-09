@@ -9,7 +9,7 @@
 
 namespace Microsoft.AspNetCore.Builder
 {
-    [global::System.CodeDom.Compiler.GeneratedCode("PhoneBox.Generators", "1.0.93.54273")]
+    [global::System.CodeDom.Compiler.GeneratedCode("PhoneBox.Generators", "%GENERATORVERSION%")]
     [global::System.Diagnostics.DebuggerNonUserCode]
     [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal static class EndpointExtensions

@@ -9,7 +9,7 @@
 
 namespace PhoneBox.Generators.Tests
 {
-    [global::System.CodeDom.Compiler.GeneratedCode("PhoneBox.Generators", "1.0.93.54273")]
+    [global::System.CodeDom.Compiler.GeneratedCode("PhoneBox.Generators", "%GENERATORVERSION%")]
     [global::System.Diagnostics.DebuggerNonUserCode]
     [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal sealed class WebHookCallConnectedRequest
