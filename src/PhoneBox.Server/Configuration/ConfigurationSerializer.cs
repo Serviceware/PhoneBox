@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 
@@ -11,12 +12,13 @@ namespace PhoneBox.Server
 {
     internal static class ConfigurationSerializer
     {
-        public static string DumpConfiguration(IConfigurationRoot root)
+        public static IResult DumpConfiguration(IConfigurationRoot root)
         {
             JsonObject jsonObject = new JsonObject();
             DumpConfiguration(jsonObject, parentNode: null, parentKey: null, root.GetChildren(), root);
             string json = jsonObject.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-            return json;
+            IResult result = Results.Text(json, contentType: "application/json");
+            return result;
         }
         private static void DumpConfiguration(JsonNode node, JsonNode? parentNode, string? parentKey, IEnumerable<IConfigurationSection> children, IConfigurationRoot root)
         {
