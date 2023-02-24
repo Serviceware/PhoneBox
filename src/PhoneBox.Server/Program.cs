@@ -87,6 +87,12 @@ namespace PhoneBox.Server
                                        // See additional configuration in CorsPolicyProvider
                                        /*.WithOrigins(corsOptions.AllowedOrigins ?? Array.Empty<string>())*/);
             });
+            services.AddHsts(x =>
+            {
+                x.Preload = true;
+                x.IncludeSubDomains = true;
+                x.MaxAge = TimeSpan.FromDays(730); // 2 years => https://hstspreload.org/
+            });
 
             services.AddSignalR();
 
@@ -100,6 +106,7 @@ namespace PhoneBox.Server
             app.UseCors();
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseHsts();
 
             app.MapGeneratedHub<TelephonyHub>()
                .RequireAuthorization("HubConsumer");
