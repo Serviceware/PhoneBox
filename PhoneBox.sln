@@ -10,7 +10,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{62C58971-8516-42E1-8D2A-70A0CE779FFE}"
 	ProjectSection(SolutionItems) = preProject
 		build\build.yml = build\build.yml
-		build\dependencies.props = build\dependencies.props
 		Directory.Build.props = Directory.Build.props
 		Directory.Build.targets = Directory.Build.targets
 		global.json = global.json
