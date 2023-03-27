@@ -8,7 +8,7 @@ namespace PhoneBox.Server.Authorization
 {
     /// <remarks>
     /// Unfortunately, the Authorization implementation doesn't honor bindable configuration sources like <see cref="IOptionsMonitor{AuthorizationOptions}"/>.
-    /// Therefore we have to apply the changed configuration to the policy, everytime it's resolved.
+    /// Therefore we have to apply the changed configuration to the policy, every time it's resolved.
     /// </remarks>
     internal sealed class AuthorizationPolicyProvider : DefaultAuthorizationPolicyProvider
     {

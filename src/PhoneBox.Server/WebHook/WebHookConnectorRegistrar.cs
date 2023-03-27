@@ -22,10 +22,10 @@ namespace PhoneBox.Server.WebHook
             services.AddGeneratedEndpoints();
             services.Configure<WebHookOptions>(configuration.GetSection(WebHookOptions.ConfigurationSectionName));
             services.AddAuthentication()
-                    .AddScheme<AuthenticationSchemeOptions, SecretKeyAuthenticationHandler>("WebHookConsumer", configureOptions: null);
+                    .AddScheme<AuthenticationSchemeOptions, SecretKeyAuthenticationHandler>(AuthorizationPolicyName, configureOptions: null);
             services.AddAuthorization(x =>
             {
-                x.AddPolicy(AuthorizationPolicyName, y => y.AddAuthenticationSchemes("WebHookConsumer")
+                x.AddPolicy(AuthorizationPolicyName, y => y.AddAuthenticationSchemes(AuthorizationPolicyName)
                                                            .RequireAuthenticatedUser()
                                                            .Build());
             });

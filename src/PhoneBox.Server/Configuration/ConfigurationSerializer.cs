@@ -83,7 +83,7 @@ namespace PhoneBox.Server
                 if (!configurationProvider.TryGet(key, out value)) 
                     continue;
 
-                bool isAppSettingsJsonProvider = configurationProvider is JsonConfigurationProvider jsonConfigurationProvider && Regex.IsMatch(jsonConfigurationProvider.Source.Path, @"^appsettings(.+)?\.json$");
+                bool isAppSettingsJsonProvider = configurationProvider is JsonConfigurationProvider jsonConfigurationProvider && Regex.IsMatch(jsonConfigurationProvider.Source.Path, @"^appsettings(.+)?|secrets\.json$");
                 return isAppSettingsJsonProvider ? ConfigurationValueResolutionResult.Found : ConfigurationValueResolutionResult.NotInterested;
             }
 
