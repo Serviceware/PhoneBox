@@ -25,7 +25,6 @@ steps:
       --configuration ${{ parameters.configuration }}
       --no-restore
       --runtime ${{ parameters.runtimeIdentifier }}
-      --self-contained
       --bl:$(Build.ArtifactStagingDirectory)/build/logs/${{ parameters.configuration }}/${{ parameters.project }}.binlog
       --p:PublishSingleFile=${{ parameters.publishSingleFile }}
     

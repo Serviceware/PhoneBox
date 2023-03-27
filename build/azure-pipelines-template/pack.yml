@@ -1,4 +1,10 @@
 ﻿parameters:
+- name: runtimeIdentifier
+  type: string
+  values:
+  - linux-x64
+  - osx-x64
+  - win-x64
 - name: configuration
   type: string
   values:
@@ -9,6 +15,7 @@ steps:
 - template: pack-dotnet.yml
   parameters:
     projects:
+    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     configuration: ${{ parameters.configuration }}
 
 - template: publish-artifact.yml

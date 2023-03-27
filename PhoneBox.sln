@@ -23,8 +23,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{62C58971
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "azure-pipeline-templates", "azure-pipeline-templates", "{D471D863-FB0C-44E3-904F-A3B8CC0B0256}"
 	ProjectSection(SolutionItems) = preProject
-		build\azure-pipelines-template\build-all.yml = build\azure-pipelines-template\build-all.yml
 		build\azure-pipelines-template\build-dotnet.yml = build\azure-pipelines-template\build-dotnet.yml
+		build\azure-pipelines-template\build-multiple.yml = build\azure-pipelines-template\build-multiple.yml
 		build\azure-pipelines-template\build.yml = build\azure-pipelines-template\build.yml
 		build\azure-pipelines-template\initialize.yml = build\azure-pipelines-template\initialize.yml
 		build\azure-pipelines-template\install-dotnet-sdk.yml = build\azure-pipelines-template\install-dotnet-sdk.yml

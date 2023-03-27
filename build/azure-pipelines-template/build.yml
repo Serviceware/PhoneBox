@@ -14,14 +14,21 @@
   type: boolean
 
 steps:
-- template: build-all.yml
+- template: build-multiple.yml
   parameters:
     projects:
     - PhoneBox.Abstractions
     - PhoneBox.Client
     - PhoneBox.Generators
-    - PhoneBox.Server
     - PhoneBox.TapiService
+    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
+    configuration: ${{ parameters.configuration }}
+    publishSingleFile: False # This is only needed for published projects, not for library projects
+
+- template: build-multiple.yml
+  parameters:
+    projects:
+    - PhoneBox.Server
     runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     configuration: ${{ parameters.configuration }}
     publishSingleFile: ${{ parameters.publishSingleFile }}

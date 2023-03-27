@@ -51,6 +51,7 @@ steps:
 #- ${{ if eq(parameters.operatingSystem, 'Linux') }}:
 #  - template: pack.yml
 #    parameters:
+#      runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
 #      configuration: ${{ parameters.configuration }}
 
 - template: publish.yml
