@@ -17,7 +17,7 @@
  
 steps:
 - task: DotNetCoreCLI@2
-  displayName: 🏭 Build ${{ parameters.project }} (${{ parameters.configuration }})
+  displayName: 🏭 Build ${{ parameters.project }} (${{ parameters.configuration }}) [self-contained]
   inputs:
     command: build
     projects: src/${{ parameters.project }}
@@ -25,8 +25,9 @@ steps:
       --configuration ${{ parameters.configuration }}
       --no-restore
       --runtime ${{ parameters.runtimeIdentifier }}
-      --bl:$(Build.ArtifactStagingDirectory)/build/logs/${{ parameters.configuration }}/${{ parameters.project }}.binlog
+      --bl:$(Build.ArtifactStagingDirectory)/build/logs/${{ parameters.configuration }}/${{ parameters.project }}.self-contained.binlog
       --p:PublishSingleFile=${{ parameters.publishSingleFile }}
+      --self-contained
     
     # Workarounds
     # --p:PublishSingleFile => https://github.com/dotnet/sdk/issues/17526

@@ -1,7 +1,6 @@
 ﻿parameters:
-- name: projects
-  type: object
-  default: { }
+- name: project
+  type: string
 - name: runtimeIdentifier
   type: string
   values:
@@ -19,29 +18,18 @@
   type: boolean
  
 steps:
-- ${{ each project in parameters.projects }}:
-  - task: DotNetCoreCLI@2
-    displayName: 🌐 Publish ${{ project }} (${{ parameters.configuration }})
-    inputs:
-      command: publish
-      projects: src/${{ project }}
-      publishWebProjects: false
-      arguments: >
-        --configuration ${{ parameters.configuration }}
-        --no-build
-        --no-restore
-        --output $(Build.ArtifactStagingDirectory)/publish
-        --runtime ${{ parameters.runtimeIdentifier }}
-        --self-contained
-        --p:IgnoreProjectGuid=True
-        --p:PublishReadyToRun=${{ parameters.publishReadyToRun }}
-        --p:PublishSingleFile=${{ parameters.publishSingleFile }}
-        --p:IncludeNativeLibrariesForSelfExtract=True
+- template: publish-dotnet-no-self-contained.yml
+  parameters:
+    project: ${{ parameters.project }}
+    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
+    configuration: ${{ parameters.configuration }}
+    publishSingleFile: ${{ parameters.publishSingleFile }}
+    publishReadyToRun: ${{ parameters.publishReadyToRun }}
 
-       # Currently causing some IL2026 errors (..which has 'RequiresUnreferencedCodeAttribute' can break functionality when trimming application code)
-       # See: https://github.com/dotnet/aspnetcore/issues/27384
-       #--p:PublishTrimmed=True
-       #--p:NoWarn=1144
-  
-  - pwsh: Rename-Item -Path $(Build.ArtifactStagingDirectory)/publish/src.zip -NewName $(Build.ArtifactStagingDirectory)/publish/${{ project }}.${{ parameters.runtimeIdentifier }}.zip
-    displayName: 🎨 Rename src.zip -> ${{ project }}.${{ parameters.runtimeIdentifier }}.zip
+- template: publish-dotnet-self-contained.yml
+  parameters:
+    project: ${{ parameters.project }}
+    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
+    configuration: ${{ parameters.configuration }}
+    publishSingleFile: ${{ parameters.publishSingleFile }}
+    publishReadyToRun: ${{ parameters.publishReadyToRun }}

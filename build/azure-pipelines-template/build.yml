@@ -24,16 +24,3 @@ steps:
     runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     configuration: ${{ parameters.configuration }}
     publishSingleFile: False # This is only needed for published projects, not for library projects
-
-- template: build-multiple.yml
-  parameters:
-    projects:
-    - PhoneBox.Server
-    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
-    configuration: ${{ parameters.configuration }}
-    publishSingleFile: ${{ parameters.publishSingleFile }}
-
-- template: publish-artifact.yml
-  parameters:
-    artifact: Build output ($(operatingSystem))
-    folder: build

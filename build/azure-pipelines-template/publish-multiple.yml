@@ -15,12 +15,15 @@
   - Release
 - name: publishSingleFile
   type: boolean
-
+- name: publishReadyToRun
+  type: boolean
+ 
 steps:
 - ${{ each project in parameters.projects }}:
-  - template: build-dotnet-no-self-contained.yml
+  - template: publish-dotnet.yml
     parameters:
       project: ${{ project }}
       runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
       configuration: ${{ parameters.configuration }}
       publishSingleFile: ${{ parameters.publishSingleFile }}
+      publishReadyToRun: ${{ parameters.publishReadyToRun }}

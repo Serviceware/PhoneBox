@@ -16,7 +16,7 @@
   type: boolean
 
 steps:
-- template: publish-dotnet.yml
+- template: publish-multiple.yml
   parameters:
     projects:
     - PhoneBox.Server
