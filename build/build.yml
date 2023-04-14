@@ -53,7 +53,7 @@ stages:
         runtimeIdentifier: win-x64
         configuration: ${{ parameters.buildConfiguration }}
         codeCoverageEngine: ${{ variables.codeCoverageEngine }}
-        publishSingleFile: False # Single-file deployments are not supported in IIS.
+        publishSingleFile: False # Single-file deployments are not supported in IIS. See: https://github.com/dotnet/runtime/issues/41482
 
 - stage: Finalize
   jobs:

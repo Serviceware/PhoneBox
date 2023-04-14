@@ -2,12 +2,6 @@
 - name: projects
   type: object
   default: { }
-- name: runtimeIdentifier
-  type: string
-  values:
-  - linux-x64
-  - osx-x64
-  - win-x64
 - name: configuration
   type: string
   values:
@@ -27,7 +21,3 @@ steps:
         --no-build
         --no-restore
         --output $(Build.ArtifactStagingDirectory)/packages
-        --p:RuntimeIdentifier=${{ parameters.runtimeIdentifier }}
-
-      # Workarounds
-      # --p:RuntimeIdentifier => https://github.com/dotnet/sdk/issues/13983

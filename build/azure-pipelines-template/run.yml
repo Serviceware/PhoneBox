@@ -5,17 +5,17 @@
   - Linux
   - macOS
   - Windows
+- name: configuration
+  type: string
+  values:
+  - Debug
+  - Release
 - name: runtimeIdentifier
   type: string
   values:
   - linux-x64
   - osx-x64
   - win-x64
-- name: configuration
-  type: string
-  values:
-  - Debug
-  - Release
 - name: codeCoverageEngine
   type: string
   values:
@@ -33,12 +33,11 @@ steps:
 
 - template: restore.yml
   parameters:
-    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     publishReadyToRun: ${{ parameters.publishReadyToRun }}
+    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
 
 - template: build.yml
   parameters:
-    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     configuration: ${{ parameters.configuration }}
     publishSingleFile: ${{ parameters.publishSingleFile }}
 
@@ -51,13 +50,12 @@ steps:
 #- ${{ if eq(parameters.operatingSystem, 'Linux') }}:
 #  - template: pack.yml
 #    parameters:
-#      runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
 #      configuration: ${{ parameters.configuration }}
 
 - template: publish.yml
   parameters:
-    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     configuration: ${{ parameters.configuration }}
+    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     publishSingleFile: ${{ parameters.publishSingleFile }}
     publishReadyToRun: ${{ parameters.publishReadyToRun }}
 

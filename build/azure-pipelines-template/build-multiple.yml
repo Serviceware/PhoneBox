@@ -1,18 +1,24 @@
 ﻿parameters:
+- name: folder
+  type: string
+  values:
+  - src
+  - tests
 - name: projects
   type: object
   default: { }
-- name: runtimeIdentifier
-  type: string
-  values:
-  - linux-x64
-  - osx-x64
-  - win-x64
 - name: configuration
   type: string
   values:
   - Debug
   - Release
+- name: runtimeIdentifier
+  type: string
+  values:
+  - none
+  - linux-x64
+  - osx-x64
+  - win-x64
 - name: publishSingleFile
   type: boolean
 
@@ -20,7 +26,8 @@ steps:
 - ${{ each project in parameters.projects }}:
   - template: build-dotnet-no-self-contained.yml
     parameters:
+      folder: ${{ parameters.folder }}
       project: ${{ project }}
-      runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
       configuration: ${{ parameters.configuration }}
+      runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
       publishSingleFile: ${{ parameters.publishSingleFile }}

@@ -1,17 +1,23 @@
 ﻿parameters:
-- name: project
-  type: string
-- name: runtimeIdentifier
+- name: folder
   type: string
   values:
-  - linux-x64
-  - osx-x64
-  - win-x64
+  - src
+  - tests
+- name: project
+  type: string
 - name: configuration
   type: string
   values:
   - Debug
   - Release
+- name: runtimeIdentifier
+  type: string
+  values:
+  - none
+  - linux-x64
+  - osx-x64
+  - win-x64
 - name: publishSingleFile
   type: boolean
  
@@ -20,14 +26,24 @@ steps:
   displayName: 🏭 Build ${{ parameters.project }} (${{ parameters.configuration }})
   inputs:
     command: build
-    projects: src/${{ parameters.project }}
-    arguments: >
-      --configuration ${{ parameters.configuration }}
-      --no-restore
-      --runtime ${{ parameters.runtimeIdentifier }}
-      --bl:$(Build.ArtifactStagingDirectory)/build/logs/${{ parameters.configuration }}/${{ parameters.project }}.binlog
-      --p:PublishSingleFile=${{ parameters.publishSingleFile }}
-      --no-self-contained
+    projects: ${{ parameters.folder }}/${{ parameters.project }}
+    ${{ if eq(parameters.runtimeIdentifier, 'none') }}:
+      arguments: >
+        --configuration ${{ parameters.configuration }}
+        --no-restore
+        --no-dependencies
+        --bl:$(Build.ArtifactStagingDirectory)/build/logs/${{ parameters.configuration }}/${{ parameters.project }}.binlog
+        --p:PublishSingleFile=${{ parameters.publishSingleFile }}
+        --no-self-contained
+    ${{ if not(eq(parameters.runtimeIdentifier, 'none')) }}:
+      arguments: >
+        --configuration ${{ parameters.configuration }}
+        --no-restore
+        --no-dependencies
+        --bl:$(Build.ArtifactStagingDirectory)/build/logs/${{ parameters.configuration }}/${{ parameters.project }}.binlog
+        --p:PublishSingleFile=${{ parameters.publishSingleFile }}
+        --no-self-contained
+        --runtime ${{ parameters.runtimeIdentifier }}
     
     # Workarounds
     # --p:PublishSingleFile => https://github.com/dotnet/sdk/issues/17526

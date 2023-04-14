@@ -1,10 +1,4 @@
 ﻿parameters:
-- name: runtimeIdentifier
-  type: string
-  values:
-  - linux-x64
-  - osx-x64
-  - win-x64
 - name: configuration
   type: string
   values:
@@ -16,11 +10,21 @@
 steps:
 - template: build-multiple.yml
   parameters:
+    folder: src
     projects:
+    - PhoneBox.Generators
     - PhoneBox.Abstractions
     - PhoneBox.Client
-    - PhoneBox.Generators
     - PhoneBox.TapiService
-    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     configuration: ${{ parameters.configuration }}
-    publishSingleFile: False # This is only needed for published projects, not for library projects
+    runtimeIdentifier: none
+    publishSingleFile: False
+
+- template: build-multiple.yml
+  parameters:
+    folder: tests
+    projects:
+    - PhoneBox.Generators.Tests
+    configuration: ${{ parameters.configuration }}
+    runtimeIdentifier: none
+    publishSingleFile: False

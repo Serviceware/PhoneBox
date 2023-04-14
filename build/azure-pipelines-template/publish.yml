@@ -20,8 +20,8 @@ steps:
   parameters:
     projects:
     - PhoneBox.Server
-    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     configuration: ${{ parameters.configuration }}
+    runtimeIdentifier: ${{ parameters.runtimeIdentifier }}
     publishSingleFile: ${{ parameters.publishSingleFile }}
     publishReadyToRun: ${{ parameters.publishReadyToRun }}
 
