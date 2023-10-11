@@ -11,13 +11,15 @@
     <SignAssembly>true</SignAssembly>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-
     <DebugType>embedded</DebugType>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <ContinuousIntegrationBuild Condition="'$(TF_BUILD)' == 'true'">true</ContinuousIntegrationBuild>
-    <DefineConstants Condition="'$(ContinuousIntegrationBuild)' == 'true'">$(DefineConstants);CI_BUILD</DefineConstants>
+    <ManagePackageVersionsCentrally>True</ManagePackageVersionsCentrally>
+    <CentralPackageVersionOverrideEnabled>True</CentralPackageVersionOverrideEnabled>
 
     <GitVersionBaseDirectory>$(MSBuildThisFileDirectory)</GitVersionBaseDirectory>
+
+    <ContinuousIntegrationBuild Condition="'$(TF_BUILD)' == 'true'">true</ContinuousIntegrationBuild>
+    <DefineConstants Condition="'$(ContinuousIntegrationBuild)' == 'true'">$(DefineConstants);CI_BUILD</DefineConstants>
 
     <PackageProjectUrl>https://github.com/Serviceware/PhoneBox</PackageProjectUrl>
     <RepositoryType>Git</RepositoryType>
