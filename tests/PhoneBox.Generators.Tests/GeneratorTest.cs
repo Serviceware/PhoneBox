@@ -66,6 +66,7 @@ namespace PhoneBox.Generators.Tests
                                           .AddReference<IAuthorizeData>()
                                           .AddReference(typeof(ServiceCollectionServiceExtensions))
                                           .AddReference(typeof(AuthorizationEndpointConventionBuilderExtensions))
+                                          .AddReference(Assembly.Load("Microsoft.AspNetCore.Authorization, Version=6.0.0.0"))
                                           .AddReferences(MetadataReference.CreateFromFile(contractAssemblyFilePath))
                                           .AddSyntaxTrees(GetEmbeddedImplementationSource("TelephonyHook.cs")));
         }

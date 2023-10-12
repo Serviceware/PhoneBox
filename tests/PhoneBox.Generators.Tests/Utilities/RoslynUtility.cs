@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -10,7 +11,8 @@ namespace PhoneBox.Generators.Tests
     internal static class RoslynUtility
     {
         public static CSharpCompilation AddReference<T>(this CSharpCompilation compilation) => AddReference(compilation, typeof(T));
-        public static CSharpCompilation AddReference(this CSharpCompilation compilation, Type type) => compilation.AddReferences(MetadataReference.CreateFromFile(type.Assembly.Location));
+        public static CSharpCompilation AddReference(this CSharpCompilation compilation, Type type) => AddReference(compilation, type.Assembly);
+        public static CSharpCompilation AddReference(this CSharpCompilation compilation, Assembly assembly) => compilation.AddReferences(MetadataReference.CreateFromFile(assembly.Location));
 
         public static void VerifyCompilation(Compilation compilation) => VerifyCompilation(compilation.GetDiagnostics());
         public static void VerifyCompilation(GeneratorRunResult result)
