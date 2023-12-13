@@ -75,40 +75,40 @@ components:
   schemas:
     WebHookCallConnectedRequest:
       required:
-        - FromPhoneNumber
-        - ToPhoneNumber
+        - fromPhoneNumber
+        - toPhoneNumber
       type: object
       properties:
-        FromPhoneNumber:
+        fromPhoneNumber:
           type: string
-        ToPhoneNumber:
+        toPhoneNumber:
           type: string
       additionalProperties: false
     WebHookCallDisconnectedRequest:
       required:
-        - FromPhoneNumber
-        - ToPhoneNumber
+        - fromPhoneNumber
+        - toPhoneNumber
       type: object
       properties:
-        FromPhoneNumber:
+        fromPhoneNumber:
           type: string
-        ToPhoneNumber:
+        toPhoneNumber:
           type: string
       additionalProperties: false
     CallConnectedEvent:
       required:
-        - PhoneNumber
+        - phoneNumber
       type: object
       properties:
-        PhoneNumber:
+        phoneNumber:
           type: string
       additionalProperties: false
     CallDisconnectedEvent:
       required:
-        - PhoneNumber
+        - phoneNumber
       type: object
       properties:
-        PhoneNumber:
+        phoneNumber:
           type: string
       additionalProperties: false
     CallState:

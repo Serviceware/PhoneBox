@@ -239,9 +239,9 @@ namespace {defaultNamespace}
         private static string GenerateClass(string defaultNamespace, OpenApiClass @class)
         {
             string visibility = @class.Usage == OpenApiModelUsage.Service ? "internal" : "public";
-            string propertiesStr = String.Join(Environment.NewLine, @class.Properties.Select(x => $"        public {x.TypeName.GetGlobalTypeName(defaultNamespace)} {x.PropertyName} {{ get; }}"));
-            string ctorParametersStr = String.Join(", ", @class.Properties.Select(x => $"{x.TypeName.GetGlobalTypeName(defaultNamespace)} {ToCamelCase(x.PropertyName)}"));
-            string ctorAssignmentsStr = String.Join(Environment.NewLine, @class.Properties.Select(x => $"            {x.PropertyName} = {ToCamelCase(x.PropertyName)};"));
+            string propertiesStr = String.Join(Environment.NewLine, @class.Properties.Select(x => $"        public {x.TypeName.GetGlobalTypeName(defaultNamespace)} {ToPascalCase(x.PropertyName)} {{ get; }}"));
+            string ctorParametersStr = String.Join(", ", @class.Properties.Select(x => $"{x.TypeName.GetGlobalTypeName(defaultNamespace)} {x.PropertyName}"));
+            string ctorAssignmentsStr = String.Join(Environment.NewLine, @class.Properties.Select(x => $"            {ToPascalCase(x.PropertyName)} = {x.PropertyName};"));
             string content = $@"{GeneratedCodeHeader}
 
 namespace {defaultNamespace}
@@ -695,46 +695,7 @@ namespace Microsoft.AspNetCore.Builder
 
         private static string ComputeAnnotationStr(Annotation annotation) => $"    [{annotation.Name}{annotation.Arguments}]";
 
-        private static string ToCamelCase(string s)
-        {
-            if (String.IsNullOrEmpty(s) || !Char.IsUpper(s[0]))
-            {
-                return s;
-            }
-
-            char[] chars = s.ToCharArray();
-
-            for (int i = 0; i < chars.Length; i++)
-            {
-                if (i == 1 && !Char.IsUpper(chars[i]))
-                {
-                    break;
-                }
-
-                bool hasNext = i + 1 < chars.Length;
-                if (i > 0 && hasNext && !Char.IsUpper(chars[i + 1]))
-                {
-                    // if the next character is a space, which is not considered uppercase 
-                    // (otherwise we wouldn't be here...)
-                    // we want to ensure that the following:
-                    // 'FOO bar' is rewritten as 'foo bar', and not as 'foO bar'
-                    // The code was written in such a way that the first word in uppercase
-                    // ends when if finds an uppercase letter followed by a lowercase letter.
-                    // now a ' ' (space, (char)32) is considered not upper
-                    // but in that case we still want our current character to become lowercase
-                    if (Char.IsSeparator(chars[i + 1]))
-                    {
-                        chars[i] = Char.ToLowerInvariant(chars[i]);
-                    }
-
-                    break;
-                }
-
-                chars[i] = Char.ToLowerInvariant(chars[i]);
-            }
-
-            return new String(chars);
-        }
+        private static string ToPascalCase(string s) => String.IsNullOrEmpty(s) ? s : $"{Char.ToUpperInvariant(s[0])}{s.Substring(1)}";
 
         private static string NormalizeEmbeddedSource(string content)
         {
