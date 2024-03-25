@@ -40,7 +40,7 @@ namespace PhoneBox.Server.WebHook
         {
             private readonly IOptionsMonitor<WebHookOptions> _webHookOptions;
 
-            public SecretKeyAuthenticationHandler(IOptionsMonitor<WebHookOptions> webHookOptions, IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock) : base(options, logger, encoder, clock)
+            public SecretKeyAuthenticationHandler(IOptionsMonitor<WebHookOptions> webHookOptions, IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder) : base(options, logger, encoder)
             {
                 this._webHookOptions = webHookOptions;
             }
@@ -49,7 +49,7 @@ namespace PhoneBox.Server.WebHook
 
             private AuthenticateResult HandleAuthenticate()
             {
-                string token = base.Request.Headers[HeaderNames.Authorization];
+                string? token = base.Request.Headers[HeaderNames.Authorization];
                 if (!String.IsNullOrEmpty(token) && token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                 {
                     token = token.Substring(7).Trim();

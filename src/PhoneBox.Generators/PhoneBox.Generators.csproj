@@ -2,6 +2,7 @@
   
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <EnforceExtendedAnalyzerRules>True</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,5 +36,5 @@
       <TargetPathWithTargetPlatformMoniker Include="$(PKGSharpYaml)\lib\netstandard2.0\SharpYaml.dll" IncludeRuntimeDependency="false" />
     </ItemGroup>
   </Target>
-  
+
 </Project>
