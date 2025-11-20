@@ -15,6 +15,7 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <ManagePackageVersionsCentrally>True</ManagePackageVersionsCentrally>
     <CentralPackageVersionOverrideEnabled>True</CentralPackageVersionOverrideEnabled>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 
     <GitVersionBaseDirectory>$(MSBuildThisFileDirectory)</GitVersionBaseDirectory>
 
