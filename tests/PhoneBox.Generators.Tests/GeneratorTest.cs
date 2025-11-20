@@ -154,7 +154,7 @@ namespace PhoneBox.Generators.Tests
             
             GeneratorDriverRunResult runResult = driver.GetRunResult();
             RoslynUtility.VerifyCompilation(runResult.Diagnostics);
-            Assert.AreEqual(1, runResult.Results.Length);
+            Assert.HasCount(1, runResult.Results);
             RoslynUtility.VerifyCompilation(runResult.Results[0]);
 
             if (assertOutputs)
@@ -164,7 +164,7 @@ namespace PhoneBox.Generators.Tests
                     SyntaxTree outputSyntaxTree = runResult.GeneratedTrees[i];
                     FileInfo outputFile = new FileInfo(outputSyntaxTree.FilePath);
                     string actualCode = outputSyntaxTree.ToString();
-                    AddResultFile(outputFile.Name, actualCode);
+                    AddTestFile(outputFile.Name, actualCode);
                     Assert.AreEqual(expectedFiles[i], outputFile.Name);
                     string expectedCode = GetExpectedSource(outputFile.Name);
                     AssertEqual(expectedCode, actualCode, outputName: Path.GetFileNameWithoutExtension(outputFile.Name), extension: outputFile.Extension.TrimStart('.'));
@@ -174,8 +174,8 @@ namespace PhoneBox.Generators.Tests
             RoslynUtility.VerifyCompilation(outputCompilation);
             RoslynUtility.VerifyCompilation(diagnostics);
 
-            Assert.AreEqual(expectedFiles.Count, runResult.GeneratedTrees.Length);
-            Assert.AreEqual(expectedFiles.Count, runResult.Results[0].GeneratedSources.Length);
+            Assert.HasCount(expectedFiles.Count, runResult.GeneratedTrees);
+            Assert.HasCount(expectedFiles.Count, runResult.Results[0].GeneratedSources);
 
             return outputCompilation;
         }
