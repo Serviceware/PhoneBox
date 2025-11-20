@@ -16,6 +16,7 @@
     <ManagePackageVersionsCentrally>True</ManagePackageVersionsCentrally>
     <CentralPackageVersionOverrideEnabled>True</CentralPackageVersionOverrideEnabled>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <NuGetAudit>true</NuGetAudit>
 
     <GitVersionBaseDirectory>$(MSBuildThisFileDirectory)</GitVersionBaseDirectory>
 
