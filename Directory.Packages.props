@@ -12,11 +12,11 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting"                  Version="8.0.0"   />
     <PackageVersion Include="Microsoft.Extensions.Http"                     Version="8.0.0"   />
     <PackageVersion Include="Microsoft.NET.Test.Sdk"                        Version="17.9.0"  />
-    <PackageVersion Include="Microsoft.OpenApi"                             Version="1.6.14"  />
-    <PackageVersion Include="Microsoft.OpenApi.Readers"                     Version="1.6.14"  />
+    <PackageVersion Include="Microsoft.OpenApi"                             Version="3.0.1"   />
+    <PackageVersion Include="Microsoft.OpenApi.YamlReader"                  Version="3.0.1"   />
     <PackageVersion Include="Moq"                                           Version="4.20.70" />
     <PackageVersion Include="MSTest.TestAdapter"                            Version="3.2.2"   />
     <PackageVersion Include="MSTest.TestFramework"                          Version="3.2.2"   />
-    <PackageVersion Include="SharpYaml"                                     Version="2.1.1"   />
+    <PackageVersion Include="SharpYaml"                                     Version="2.1.4"   />
   </ItemGroup>
 </Project>

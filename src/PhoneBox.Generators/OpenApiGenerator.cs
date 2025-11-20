@@ -4,18 +4,19 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Interfaces;
-using Microsoft.OpenApi.Models;
-using Microsoft.OpenApi.Readers;
+using Microsoft.OpenApi;
+using Microsoft.OpenApi.Reader;
 
 namespace PhoneBox.Generators
 {
@@ -23,7 +24,7 @@ namespace PhoneBox.Generators
     public sealed class OpenApiGenerator : IIncrementalGenerator
     {
         private static readonly Assembly ThisAssembly = typeof(OpenApiGenerator).Assembly;
-        private static readonly string AttributeTypeName = typeof(OpenApiGenerationAttribute).FullName;
+        private static readonly string AttributeTypeName = typeof(OpenApiGenerationAttribute).FullName!;
         private static readonly string DefaultAnnotationsStr = ComputeDefaultAnnotationsStr();
         private static readonly string GeneratedCodeAnnotationStr = ComputeGeneratedCodeAnnotationStr();
         private const string EmbeddedSourcePrefix = $"{nameof(PhoneBox)}.{nameof(Generators)}.EmbeddedSources";
@@ -77,7 +78,7 @@ namespace PhoneBox.Generators
             ReportOpenApiErrors(context, container.Path, container.Diagnostic);
 
             string defaultNamespace = configuredNamespace ?? rootNamespace ?? assemblyName ?? "PhoneBox.Generated";
-            IDictionary<string, OpenApiModel> modelMap = CollectModels(context, container.Path, container.Document.Components.Schemas).ToDictionary(x => x.Name);
+            IDictionary<string, OpenApiModel> modelMap = CollectModels(context, container.Path, container.Document?.Components?.Schemas).ToDictionary(x => x.Name);
             IDictionary<OpenApiOperationGroupKey, OpenApiOperationGroup> operationGroupMap = new Dictionary<OpenApiOperationGroupKey, OpenApiOperationGroup>();
             ICollection<OpenApiOperationGroup> operationGroups = operationGroupMap.Values;
             CollectOperations(container, operationGroupMap, modelMap);
@@ -386,31 +387,43 @@ namespace Microsoft.AspNetCore.Builder
             return resolvedNamespace;
         }
 
-        private static IEnumerable<OpenApiModel> CollectModels(SourceProductionContext context, string path, IDictionary<string, OpenApiSchema> schemas)
+        private static IEnumerable<OpenApiModel> CollectModels(SourceProductionContext context, string path, IDictionary<string, IOpenApiSchema>? schemas)
         {
-            foreach (KeyValuePair<string, OpenApiSchema> schemaPair in schemas)
+            if (schemas == null)
+                yield break;
+
+            foreach (KeyValuePair<string, IOpenApiSchema> schemaPair in schemas)
             {
                 string schemaName = schemaPair.Key;
-                OpenApiSchema modelSchema = schemaPair.Value;
-
-                bool isEnum = modelSchema.Enum.Any();
+                IOpenApiSchema modelSchema = schemaPair.Value;
 
                 OpenApiModel model;
-                if (isEnum)
+                if (modelSchema.Enum != null)
                 {
                     OpenApiEnum @enum = new OpenApiEnum(schemaName);
                     model = @enum;
 
                     IDictionary<int, string> enumNameMap = new Dictionary<int, string>();
-                    if (modelSchema.Extensions.TryGetValue(EnumVarNamesExtension, out IOpenApiExtension enumVarNamesValue) && enumVarNamesValue is OpenApiArray enumVarNamesArray)
+                    if (modelSchema.Extensions != null && modelSchema.Extensions.TryGetValue(EnumVarNamesExtension, out IOpenApiExtension enumVarNamesValue) && enumVarNamesValue is JsonNodeExtension { Node: JsonArray enumVarNamesArray })
                     {
-                        enumNameMap.AddRange(enumVarNamesArray.Select((x, i) => new KeyValuePair<int, string>(i, ParseEnumVarName(x))));
+                        for (int i = 0; i < enumVarNamesArray.Count; i++)
+                        {
+                            JsonNode? node = enumVarNamesArray[i];
+                            if (node == null)
+                                continue;
+
+                            string? memberName = ParseEnumVarName(node, node.GetValueKind());
+                            if (memberName == null)
+                                continue;
+
+                            enumNameMap.Add(i, memberName);
+                        }
                     }
 
                     for (int i = 0; i < modelSchema.Enum.Count; i++)
                     {
-                        IOpenApiAny enumMember = modelSchema.Enum[i];
-                        OpenApiEnumMember? member = ParseEnumMember(context, path, enumMember, i, enumNameMap);
+                        JsonNode? enumMember = modelSchema.Enum[i];
+                        OpenApiEnumMember? member = ParseEnumMember(context, path, enumMember, enumMember.GetValueKind(), i, enumNameMap);
                         if (member != null)
                             @enum.Members.Add(member.Value);
                     }
@@ -420,11 +433,14 @@ namespace Microsoft.AspNetCore.Builder
                     OpenApiClass @class = new OpenApiClass(schemaName);
                     model = @class;
 
-                    foreach (KeyValuePair<string, OpenApiSchema> propertyPair in modelSchema.Properties)
+                    if (modelSchema.Properties != null)
                     {
-                        string propertyName = propertyPair.Key;
-                        OpenApiSchema propertySchema = propertyPair.Value;
-                        @class.Properties.Add(new OpenApiClassProperty(propertyName, GetCSharpTypeName(propertySchema)));
+                        foreach (KeyValuePair<string, IOpenApiSchema> propertyPair in modelSchema.Properties)
+                        {
+                            string propertyName = propertyPair.Key;
+                            IOpenApiSchema propertySchema = propertyPair.Value;
+                            @class.Properties.Add(new OpenApiClassProperty(propertyName, GetCSharpTypeName(propertySchema)));
+                        }
                     }
                 }
 
@@ -434,17 +450,25 @@ namespace Microsoft.AspNetCore.Builder
 
         private static void CollectOperations(OpenApiDocumentContainer container, IDictionary<OpenApiOperationGroupKey, OpenApiOperationGroup> operationGroupMap, IDictionary<string, OpenApiModel> modelMap)
         {
-            foreach (KeyValuePair<string, OpenApiPathItem> pathPair in container.Document.Paths)
+            if (container.Document == null)
+                return;
+
+            foreach (KeyValuePair<string, IOpenApiPathItem> pathPair in container.Document.Paths)
             {
                 string path = pathPair.Key;
-                OpenApiPathItem pathItem = pathPair.Value;
+                IOpenApiPathItem pathItem = pathPair.Value;
 
-                foreach (KeyValuePair<OperationType, OpenApiOperation> operationPair in pathItem.Operations)
+                if (pathItem.Operations == null)
+                    continue;
+
+                foreach (KeyValuePair<HttpMethod, OpenApiOperation> operationPair in pathItem.Operations)
                 {
-                    OperationType method = operationPair.Key;
                     OpenApiOperation operation = operationPair.Value;
                     bool isWebSocket = IsWebSocket(operation);
                     string serviceName = GetServiceName(operation);
+                    if (operation.OperationId == null)
+                        continue;
+
                     string methodName = operation.OperationId;
                     string operationGroupPath = GetPath(path);
                     OpenApiOperationGroupKey operationGroupKey = new OpenApiOperationGroupKey(serviceName, operationGroupPath, isWebSocket);
@@ -456,13 +480,22 @@ namespace Microsoft.AspNetCore.Builder
 
                     OpenApiOperationDescriptor operationDescriptor = new OpenApiOperationDescriptor(operationGroup, methodName, path);
 
-                    OpenApiSchema? bodySchema = operation.RequestBody?.Content.FirstOrDefault().Value?.Schema;
+                    IOpenApiSchema? bodySchema = operation.RequestBody?.Content?.FirstOrDefault().Value?.Schema;
                     if (bodySchema != null)
                         operationDescriptor.Parameters.Add(new OpenApiOperationParameter("content", GetCSharpTypeName(bodySchema)));
 
-                    foreach (OpenApiParameter parameter in operation.Parameters)
+                    if (operation.Parameters != null)
                     {
-                        operationDescriptor.Parameters.Add(new OpenApiOperationParameter(parameter.Name, GetCSharpTypeName(parameter.Schema)));
+                        foreach (IOpenApiParameter? parameter in operation.Parameters)
+                        {
+                            if (parameter.Name == null)
+                                continue;
+
+                            if (parameter.Schema == null)
+                                continue;
+
+                            operationDescriptor.Parameters.Add(new OpenApiOperationParameter(parameter.Name, GetCSharpTypeName(parameter.Schema)));
+                        }
                     }
 
                     foreach (string usedSchema in GetUsedSchemas(operationPair.Value))
@@ -494,60 +527,102 @@ namespace Microsoft.AspNetCore.Builder
 
         private static IEnumerable<string> GetUsedSchemas(OpenApiOperation operation)
         {
-            IEnumerable<string> usedSchemas = GetUsedSchemaReferences(operation).Where(x => x != null)
-                                                                                .SelectMany(x => x)
-                                                                                .Select(x => x.Value.Schema.Reference.Id);
-
-            return usedSchemas;
-        }
-
-        private static IEnumerable<IEnumerable<KeyValuePair<string, OpenApiMediaType>>> GetUsedSchemaReferences(OpenApiOperation operation)
-        {
-            if (operation.RequestBody != null)
-                yield return operation.RequestBody.Content;
-
-            yield return operation.Parameters.SelectMany(x => x.Content);
-            yield return operation.Responses.SelectMany(x => x.Value.Content);
-        }
-
-        private static OpenApiTypeName GetCSharpTypeName(OpenApiSchema schema)
-        {
-            string? typeName = GetOpenApiTypeName(schema, out bool isPrimitive);
-            switch (typeName)
+            foreach (KeyValuePair<string, IOpenApiMediaType> reference in GetUsedSchemaReferences(operation))
             {
-                // TODO: Finish implementation
-                case null: return new OpenApiTypeName("void", isPrimitive: true);
-                case "boolean": return new OpenApiTypeName("bool", isPrimitive: true);
-                default: return new OpenApiTypeName(typeName, isPrimitive);
+                if (reference.Value.Schema is OpenApiSchemaReference { Reference.Id: not null } schemaReference)
+                {
+                    yield return schemaReference.Reference.Id;
+                }
             }
         }
-        private static string? GetOpenApiTypeName(OpenApiSchema schema, out bool isPrimitive)
+
+        private static IEnumerable<KeyValuePair<string, IOpenApiMediaType>> GetUsedSchemaReferences(OpenApiOperation operation)
         {
-            if (schema.Reference != null)
+            if (operation.RequestBody is { Content: not null })
+            {
+                foreach (KeyValuePair<string, IOpenApiMediaType> body in operation.RequestBody.Content)
+                {
+                    yield return body;
+                }
+            }
+
+            if (operation.Parameters != null)
+            {
+                foreach (IOpenApiParameter parameter in operation.Parameters)
+                {
+                    if (parameter.Content == null)
+                        continue;
+
+                    foreach (KeyValuePair<string, IOpenApiMediaType> mediaType in parameter.Content)
+                    {
+                        yield return mediaType;
+                    }
+                }
+            }
+
+            if (operation.Responses != null)
+            {
+                foreach (KeyValuePair<string, IOpenApiResponse> response in operation.Responses)
+                {
+                    if (response.Value.Content == null)
+                        continue;
+
+                    foreach (KeyValuePair<string, IOpenApiMediaType> responseContent in response.Value.Content)
+                    {
+                        yield return responseContent;
+                    }
+                }
+            }
+        }
+
+        private static OpenApiTypeName GetCSharpTypeName(IOpenApiSchema schema)
+        {
+            string? typeName = GetCSharpTypeName(schema, out bool isPrimitive);
+            return typeName != null ? new OpenApiTypeName(typeName, isPrimitive) : new OpenApiTypeName("void", isPrimitive: true);
+        }
+        private static string? GetCSharpTypeName(IOpenApiSchema schema, out bool isPrimitive)
+        {
+            if (schema is OpenApiSchemaReference reference)
             {
                 isPrimitive = false;
-                return schema.Reference.Id;
+                return reference.Reference.Id;
             }
 
             if (schema.Type != null)
             {
                 isPrimitive = true;
-                return schema.Type;
+                return ToCSharpKeyword(schema.Type.Value);
             }
 
             isPrimitive = false;
             return null;
         }
 
+        private static string ToCSharpKeyword(JsonSchemaType schemaType) => schemaType switch
+        {
+            JsonSchemaType.String => "string",
+            JsonSchemaType.Number => "double",
+            JsonSchemaType.Integer => "int",
+            JsonSchemaType.Boolean => "bool",
+            _ => throw new ArgumentOutOfRangeException(nameof(schemaType), schemaType, null)
+        };
+
         private static bool IsWebSocket(IOpenApiExtensible extensible)
         {
+            if (extensible.Extensions == null)
+                return false;
+
             if (!extensible.Extensions.TryGetValue("x-websocket", out IOpenApiExtension extension))
                 return false;
 
-            return extension is OpenApiBoolean { Value: true };
+            if (extension is not JsonNodeExtension jsonNodeExtension)
+                return false;
+
+            JsonValueKind jsonValueKind = jsonNodeExtension.Node.GetValueKind();
+            return jsonValueKind == JsonValueKind.True;
         }
 
-        private static string GetServiceName(OpenApiOperation operation) => operation.Tags.Any() ? operation.Tags[0].Name : "Default";
+        private static string GetServiceName(OpenApiOperation operation) => operation.Tags?.FirstOrDefault()?.Name ?? "Default";
 
         private static string GetPath(string path)
         {
@@ -565,16 +640,25 @@ namespace Microsoft.AspNetCore.Builder
             SourceText? text = item.GetText(cancellationToken);
             if (text == null)
                 return null;
-
-            OpenApiStringReader reader = new OpenApiStringReader();
-
+            
+            using MemoryStream stream = new MemoryStream();
+            using TextWriter writer = new StreamWriter(stream);
+            text.Write(writer, cancellationToken);
+            writer.Flush();
+            stream.Position = 0;
+            
             // TODO: What happens if the yaml file does not represent an OpenAPI document. Exception?
-            OpenApiDocument document = reader.Read(text.ToString(), out OpenApiDiagnostic diagnostic);
+            OpenApiReaderSettings settings = new OpenApiReaderSettings();
+            settings.AddYamlReader();
+            (OpenApiDocument? document, OpenApiDiagnostic? diagnostic) = OpenApiDocument.Load(stream, settings: settings);
             return new OpenApiDocumentContainer(item.Path, item, document, diagnostic);
         }
 
-        private static void ReportOpenApiErrors(SourceProductionContext context, string path, OpenApiDiagnostic diagnostic)
+        private static void ReportOpenApiErrors(SourceProductionContext context, string path, OpenApiDiagnostic? diagnostic)
         {
+            if (diagnostic == null)
+                return;
+
             foreach (OpenApiError error in diagnostic.Errors)
                 ReportOpenApiError(DiagnosticSeverity.Error, error, path, context);
 
@@ -587,12 +671,12 @@ namespace Microsoft.AspNetCore.Builder
             ReportDiagnostic(severity, ErrorCode.OpenApi, error.Pointer, error.Message, context, path);
         }
 
-        private static void ReportDiagnostic(DiagnosticSeverity severity, string id, string title, string message, SourceProductionContext context, string path)
+        private static void ReportDiagnostic(DiagnosticSeverity severity, string id, string? title, string message, SourceProductionContext context, string path)
         {
             DiagnosticDescriptor descriptor = new DiagnosticDescriptor
             (
                 id: id
-              , title: title
+              , title: title ?? ""
               , messageFormat: message
               , category: nameof(OpenApiGenerator)
               , defaultSeverity: severity
@@ -603,7 +687,7 @@ namespace Microsoft.AspNetCore.Builder
 
         private static bool IsAssemblyAttribute(SyntaxNode node, CancellationToken cancellationToken)
         {
-            return node is AttributeListSyntax { Target: { } } attributeList && attributeList.Target.Identifier.IsKind(SyntaxKind.AssemblyKeyword);
+            return node is AttributeListSyntax { Target: not null } attributeList && attributeList.Target.Identifier.IsKind(SyntaxKind.AssemblyKeyword);
         }
 
         private static SignalRHubGenerationOutputs? CollectOutputFilter(GeneratorSyntaxContext context, CancellationToken cancellationToken)
@@ -650,32 +734,41 @@ namespace Microsoft.AspNetCore.Builder
             return value;
         }
 
-        private static OpenApiEnumMember? ParseEnumMember(SourceProductionContext context, string path, IOpenApiAny enumMember, int index, IDictionary<int, string> enumNameMap)
+        private static OpenApiEnumMember? ParseEnumMember(SourceProductionContext context, string path, JsonNode node, JsonValueKind valueKind, int index, IDictionary<int, string> enumNameMap)
         {
-            switch (enumMember)
+            switch (valueKind)
             {
-                case OpenApiInteger @int:
-                    int intValue = @int.Value;
+                case JsonValueKind.Number:
+                {
+                    int intValue = Convert.ToInt32((decimal)node);
                     if (!enumNameMap.TryGetValue(index, out string name))
                     {
                         ReportDiagnostic(DiagnosticSeverity.Error, ErrorCode.OpenApi, "OpenAPI document parsing error", $"Missing enum name for value '{intValue}'. Specify it using the {EnumVarNamesExtension} property.", context, path);
                         return null;
                     }
                     return new OpenApiEnumMember(name, intValue);
+                }
 
-                case OpenApiString @string:
-                    return new OpenApiEnumMember(@string.Value, index);
+                case JsonValueKind.String:
+                {
+                    string? memberName = (string?)node;
+                    if (memberName == null)
+                        return null;
 
-                default: throw new ArgumentOutOfRangeException(nameof(enumMember), enumMember, null);
+                    return new OpenApiEnumMember(memberName, index);
+                }
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(valueKind), valueKind, null);
             }
         }
 
-        private static string ParseEnumVarName(IOpenApiAny value)
+        private static string? ParseEnumVarName(JsonNode node, JsonValueKind valueKind)
         {
-            switch (value)
+            switch (valueKind)
             {
-                case OpenApiString @string: return @string.Value;
-                default: throw new ArgumentOutOfRangeException(nameof(value), value, null);
+                case JsonValueKind.String: return (string?)node;
+                default: throw new ArgumentOutOfRangeException(nameof(valueKind), valueKind, null);
             }
         }
 
@@ -743,10 +836,10 @@ namespace Microsoft.AspNetCore.Builder
         {
             public string Path { get; }
             public AdditionalText SourceFile { get; }
-            public OpenApiDocument Document { get; }
-            public OpenApiDiagnostic Diagnostic { get; }
+            public OpenApiDocument? Document { get; }
+            public OpenApiDiagnostic? Diagnostic { get; }
 
-            public OpenApiDocumentContainer(string path, AdditionalText sourceFile, OpenApiDocument document, OpenApiDiagnostic diagnostic)
+            public OpenApiDocumentContainer(string path, AdditionalText sourceFile, OpenApiDocument? document, OpenApiDiagnostic? diagnostic)
             {
                 Path = path;
                 SourceFile = sourceFile;
@@ -755,7 +848,7 @@ namespace Microsoft.AspNetCore.Builder
             }
         }
 
-        private readonly struct OpenApiOperationGroupKey
+        private readonly record struct OpenApiOperationGroupKey
         {
             public string Name { get; }
             public string Path { get; }
